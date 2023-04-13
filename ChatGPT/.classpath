@@ -16,5 +16,6 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/Snoop/Downloads/JTattoo-1.6.13.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
