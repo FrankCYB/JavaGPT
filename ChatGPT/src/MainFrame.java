@@ -85,7 +85,7 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.0.5";
+	public static String version = "1.0.7";
 	private Boolean first = true;
 	private Boolean autosave = true;
 	private Boolean autotitle = true;

@@ -21,6 +21,7 @@ public class ChatLoader extends JFrame {
 	private JList<FileListItem> fileList;
 	private DefaultListModel<FileListItem> model;
 	private JPopupMenu popupMenu;
+	private JPopupMenu popupMenu2;
 	private String path;
 	private int selectedIndex;
 
@@ -81,16 +82,20 @@ public class ChatLoader extends JFrame {
 	        
 	        
 	        popupMenu = new JPopupMenu();
+	        popupMenu2 = new JPopupMenu();
 
 	        // Add menu items to the popup menu
 	        JMenuItem deleteItem = new JMenuItem("Delete");
 	        JMenuItem renameItem = new JMenuItem("Rename");
 	        JMenuItem refreshItems = new JMenuItem("Refresh");
-
+	        
+	        JMenuItem refreshItems2 = new JMenuItem("Refresh");
+	        
 	        popupMenu.add(deleteItem);
 	        popupMenu.add(renameItem);
 	        popupMenu.add(refreshItems);
 	        
+	        popupMenu2.add(refreshItems2);
 	        
 	        deleteItem.addActionListener(new ActionListener() {
 	            public void actionPerformed(ActionEvent e) {          
@@ -131,6 +136,12 @@ public class ChatLoader extends JFrame {
 	        });
 	        
 	        refreshItems.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	            	refreshlist();
+	            }
+	        });
+	        
+	        refreshItems2.addActionListener(new ActionListener() {
 	            public void actionPerformed(ActionEvent e) {
 	            	refreshlist();
 	            }
@@ -179,8 +190,11 @@ public class ChatLoader extends JFrame {
 	
 	private void showPopupMenu(MouseEvent e) {
         selectedIndex = fileList.getSelectedIndex();
-        if (selectedIndex == -1) return; // No element selected
+        if (selectedIndex == -1) {
+        	popupMenu2.show(e.getComponent(), e.getX(), e.getY());
+        }else {
 
         popupMenu.show(e.getComponent(), e.getX(), e.getY());
+        }
     }
 }
