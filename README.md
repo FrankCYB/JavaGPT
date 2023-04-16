@@ -65,7 +65,7 @@ If you enjoy JavaGPT and would like to support me in future updates and projects
 
 
 
-Also, Shoutout to TheoKanning and his contributors for making [OpenAI-Java](https://github.com/TheoKanning/openai-java "Project page") : A ChatGPT API wrapper for Java
+Also, shoutout to TheoKanning and his contributors for making [OpenAI-Java](https://github.com/TheoKanning/openai-java "Project page") : A ChatGPT API wrapper for Java
 
 Made my life much easier 😁👍
 
