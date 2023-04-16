@@ -58,7 +58,14 @@ Theme=dark			#Themes JFrame (Window) to set config. Options: dark,light
     
 ## Final notes
 
-Shoutout to TheoKanning and his contributors for making [OpenAI-Java](https://github.com/TheoKanning/openai-java "Project page") : A ChatGPT API wrapper for Java
+If you enjoy JavaGPT and would like to support me in future updates and projects, please feel free to show your support by buying me a ☕ 
+
+<a href="https://www.buymeacoffee.com/FrankCYB" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+
+
+
+
+Also, Shoutout to TheoKanning and his contributors for making [OpenAI-Java](https://github.com/TheoKanning/openai-java "Project page") : A ChatGPT API wrapper for Java
 
 Made my life much easier 😁👍
 
