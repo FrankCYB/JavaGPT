@@ -4,14 +4,25 @@
 A Java GUI that interfaces ChatGPT API.
 
 
-![](https://i.imgur.com/lI8oufi.gif)
+![](https://i.imgur.com/RD0DtHt.gif)
 
 
 ## Features
 
-- Proxy support
+- Chat Streaming
+	- Just like the website, responses will generate in real time
+- Chat History
+	- See and interact with previous chats
+	- Accessible through the "Load Chat" button
+
+![Demo](https://i.imgur.com/q3s1frY.gif)
+
+- Chat Titles
+	- Autogenerate titles like ChatGPT website
+	- Manually name chats if preferred
 - Import premade prompts
 - Save chats to file
+- Support for ChatGPT 4, and 3.5 models
 - Cross platform
 
 
@@ -23,7 +34,7 @@ Afterwords, extract the archieve
 
 Then open the config.properties file in a text editor
 
-Add your [ChatGPT API-Key](https://platform.openai.com/account/api-keys "ChatGPT API-Key") on the first line after "apikey="
+Add your [ChatGPT API-Key](https://platform.openai.com/account/api-keys "ChatGPT API-Key") on line 4 after "apikey="
 
 Run JavaGPT.jar and enjoy! 😁
 
@@ -31,17 +42,15 @@ Run JavaGPT.jar and enjoy! 😁
 
 ## Config Example
 ```
-apikey=ENTERAPIKEYHERE
-
-proxyip= //Enter proxy here
-proxyport= //Enter proxy port number here
-
-OkHttpClient=true // Disable or Enable OkHttpClient
-OHC_connectTimeout=10 
-OHC_writeTimeout=10 
-OHC_readTimeout=30 // Adjust allowed wait time for prompt response from ChatGPT API
-
-WindowSize=default //Options: small,default
+apikey=ENTER_CHAT_GPT_API_KEY_HERE
+model=gpt-3.5-turbo		#Model used for ChatGPT Client (Supported Models: gpt-4, gpt-3.5-turbo, etc) > All supported models here "https://platform.openai.com/docs/models/gpt-3-5"
+maxTokens=1024			#Max ammount of tokens allowed per ChatGPT API request
+timeout=30			#Adjust allowed wait time for prompt response from ChatGPT API
+autosave=true			#Adjust wether chats will save automatically (Necessary for chat history to work properly)
+autotitle=false			#Adjusts wether new chats will automatically generate file name titles based on the context of the chat
+chat_location_override=		#Overrides default "chat_history" folder path (Original path is set to the location of the jar file on runtime)
+WindowSize=			#Adjusts JFrame (Window) size. Options: small,medium,large (Set to "medium" by default)
+Theme=dark			#Themes JFrame (Window) to set config. Options: dark,light
 ```
 ## Requirements
 
@@ -49,7 +58,7 @@ WindowSize=default //Options: small,default
     
 ## Final notes
 
-Shoutout to LiLittleCat for making a [ChatGPT API library](https://github.com/LiLittleCat/ChatGPT "Latest release page") for Java
+Shoutout to TheoKanning and his contributors for making [OpenAI-Java](https://github.com/TheoKanning/openai-java "Project page") : A ChatGPT API wrapper for Java
 
 Made my life much easier 😁👍
 

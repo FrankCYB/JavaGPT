@@ -85,7 +85,7 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.0.0";
+	public static String version = "1.0.5";
 	private Boolean first = true;
 	private Boolean autosave = true;
 	private Boolean autotitle = true;
@@ -276,10 +276,18 @@ public class MainFrame extends JFrame {
 					 
 				//Scales JFrame based on "WindowSize" prop	
 				if(prop.getProperty("WindowSize").equals("small")){
+					
 					frame.getContentPane().setPreferredSize(new Dimension(475, 532));
-				}else{					
+					
+				}else if(prop.getProperty("WindowSize").equals("large")){
+					
+					frame.getContentPane().setPreferredSize(new Dimension(1370, 960));
+					
+				}else {
+					
 					frame.getContentPane().setPreferredSize(new Dimension(686, 647));
-				}			
+					
+				}
 				frame.pack();
 				frame.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("logo.png")));
 				//----------------------------------------
@@ -548,15 +556,26 @@ public class MainFrame extends JFrame {
 					            GPTConvo = GPTConvoBuilder.toString();
 					            final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), GPTConvo);
 					            messages.add(systemMessage);
-								if(first) {			    							    							    			
-				    			if(autotitle) {					    				
-				    			newFile();				    			
-				    			}else{
-				    			 newFile();
-				    			 first = false;
+								if(first) {	
+								newFile();	
+				    			if(!autotitle) {					    				
+				    			first = false;			    			
 				    			}
 								}
-				    			success = true;
+								
+								if(autosave) {				    		
+						    		try {
+										writeMessagesToFile(FGPTConvo.getPath());
+									} catch (IOException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+						    	}
+						    	//Runs when autotitle is true and first is true
+						    	if(first) {
+						    		AutoTitle();
+						    		first = false;
+						    	}
 				    			
 				    		}catch(Exception e) {
 				    			//JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -565,21 +584,8 @@ public class MainFrame extends JFrame {
 					    		} catch (BadLocationException e2) {
 					    		    e2.printStackTrace();
 					    		}
-				    			}	
-				    						    	
-				    	if(autosave && success) {				    		
-				    		try {
-								writeMessagesToFile(FGPTConvo.getPath());
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-				    	}
+				    			}					    						    	
 				    	
-				    	if(autotitle && first) {
-				    		AutoTitle();
-				    		first = false;
-				    	}
 				    	SubmitButton.setText("Submit");
 				    }
 				});
@@ -762,8 +768,15 @@ public class MainFrame extends JFrame {
 	        	SaveButton.setBounds(10, 477, 43, 23);
 	        	ImportButton.setBounds(56, 477, 43, 23);
 	        	ResetButton.setBounds(10, 500, 89, 23);	        	
-	        }else {
+	        }else if(prop.getProperty("WindowSize").equals("large")) {
 	        	//setBounds(100, 100, 702, 707);
+	    		SubmitButton.setBounds(13, 831, 148, 36);
+	        	ResetButton.setBounds(13, 914, 148, 36);
+	        	scrollPane.setBounds(13, 15, 1344, 802);
+	        	scrollPane_1.setBounds(171, 831, 1186, 118);
+	        	SaveButton.setBounds(13, 873, 73, 36);
+	        	ImportButton.setBounds(88, 873, 73, 36);
+	        }else {	     	    		
 	        	SubmitButton.setBounds(10, 554, 89, 23);
 	    		ResetButton.setBounds(10, 616, 89, 23);
 	    		scrollPane.setBounds(10, 11, 667, 532);
@@ -886,6 +899,7 @@ private void showPopupMenu2(int x, int y) {
 					File file = new File(FGPTConvo.getParentFile(), title + ".json");
 					if(file.exists()) {
 						JOptionPane.showMessageDialog(null, "File already exists", "Error", JOptionPane.ERROR_MESSAGE);
+						setTitle("JavaGPT - " + FGPTConvo.getName().substring(0, FGPTConvo.getName().length()-5));
 					}else {
 						FGPTConvo.renameTo(file);
 						FGPTConvo = file;
