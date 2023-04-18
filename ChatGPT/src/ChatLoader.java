@@ -12,6 +12,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.FileFilter;
+import java.util.Arrays;
+import java.util.Comparator;
+
 import javax.swing.DefaultListModel;
 import java.awt.BorderLayout;
 
@@ -24,6 +28,7 @@ public class ChatLoader extends JFrame {
 	private JPopupMenu popupMenu2;
 	private String path;
 	private int selectedIndex;
+	
 
 
 	/**
@@ -70,7 +75,7 @@ public class ChatLoader extends JFrame {
 	 */
 	public ChatLoader(String path) {
 		this.path = path;
-		setTitle("Chat Loader");
+		setTitle("Chat History");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 450, 288);
 		contentPane = new JPanel();
@@ -86,16 +91,20 @@ public class ChatLoader extends JFrame {
 
 	        // Add menu items to the popup menu
 	        JMenuItem deleteItem = new JMenuItem("Delete");
-	        JMenuItem renameItem = new JMenuItem("Rename");
+	        JMenuItem renameItem = new JMenuItem("Rename");	        
 	        JMenuItem refreshItems = new JMenuItem("Refresh");
+	        JMenuItem sortItems = new JMenuItem("Sort");
 	        
 	        JMenuItem refreshItems2 = new JMenuItem("Refresh");
+	        JMenuItem sortItems2 = new JMenuItem("Sort");
 	        
 	        popupMenu.add(deleteItem);
-	        popupMenu.add(renameItem);
+	        popupMenu.add(renameItem);	        
 	        popupMenu.add(refreshItems);
+	        popupMenu.add(sortItems);
 	        
 	        popupMenu2.add(refreshItems2);
+	        popupMenu2.add(sortItems2);
 	        
 	        deleteItem.addActionListener(new ActionListener() {
 	            public void actionPerformed(ActionEvent e) {          
@@ -147,6 +156,20 @@ public class ChatLoader extends JFrame {
 	            }
 	        });
 	        
+	        sortItems.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	            	MainFrame.isAlpha = !MainFrame.isAlpha;
+	            	refreshlist();
+	            }
+	        });
+	        
+	        sortItems2.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	            	MainFrame.isAlpha = !MainFrame.isAlpha;
+	            	refreshlist();
+	            }
+	        });
+	        
 	        // Attach the popup menu to the JList using a MouseListener
 	        fileList.addMouseListener(new MouseAdapter() {
 	            public void mousePressed(MouseEvent e) {
@@ -175,7 +198,8 @@ public class ChatLoader extends JFrame {
 			scrollPane.setViewportView(fileList);
 			contentPane.add(scrollPane);
 	}
-	public void refreshlist() {
+	
+	/*public void refreshlist() {
 		File directory = new File(path);
 		model.clear();
         for (File file : directory.listFiles()) {
@@ -186,6 +210,32 @@ public class ChatLoader extends JFrame {
                 model.addElement(item);
             }
         }
+	}*/
+	
+	public void refreshlist() {
+	    File directory = new File(path);
+	    model.clear();
+	    File[] files = directory.listFiles(new FileFilter() {
+	        public boolean accept(File file) {
+	            return file.isFile() && file.getName().endsWith(".json");
+	        }
+	    });
+	    
+	    if(MainFrame.isAlpha) {
+	    Arrays.sort(files, new Comparator<File>() {
+	        public int compare(File f1, File f2) {
+	            long diff = f2.lastModified() - f1.lastModified();
+	            return Long.signum(diff);
+	        }
+	    });
+	    }
+	    
+	    for (File file : files) {
+	        String displayName = file.getName();
+	        String filePath = file.getAbsolutePath();
+	        FileListItem item = new FileListItem(displayName.replaceFirst("[.][^.]+$", ""), filePath);
+	        model.addElement(item);
+	    }
 	}
 	
 	private void showPopupMenu(MouseEvent e) {

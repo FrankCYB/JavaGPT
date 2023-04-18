@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 
@@ -7,8 +8,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.text.BadLocationException;
-import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
@@ -48,6 +50,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JScrollPane;
 import java.awt.Font;
 import java.awt.Toolkit;
+
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
@@ -69,15 +72,27 @@ import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
 
-public class MainFrame extends JFrame {
+import org.commonmark.node.*;
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.HtmlRenderer;
 
+public class MainFrame extends JFrame {
+	
+	private static MainFrame frame;
 	private JPanel contentPane;
 
 	private OpenAiService service;
 	private final static ArrayList<ChatMessage> messages = new ArrayList<>();
 	private static JTextArea ChatArea;
     private JButton SubmitButton;
+    private JScrollPane scrollPane;
+    private JScrollPane scrollPane_1;
+	private JButton SaveButton;
+	private JButton ImportButton;
+	private JButton ResetButton;
+	
 	private static JEditorPane DisplayArea;
+	private static JEditorPane HTMLArea;
 	private static StyledDocument doc;
 	private JMenuBar menuBar;
 	private static String GPTConvo;
@@ -85,16 +100,25 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.0.7";
+	public static String version = "1.2.0";
 	private Boolean first = true;
 	private Boolean autosave = true;
 	private Boolean autotitle = true;
 	private Boolean cloaderopen = false;
 	private Boolean aframeopen = false;
+	private static Boolean isHTMLView = false;
+	private static Parser parser;
+	private static HtmlRenderer renderer;
+	public static Boolean isAlpha = true;
+	private Boolean isStreamRunning = false;
+	private static int FormSize;
 	public static int seltheme = 0;
 	private ChatLoader cloader;
 	private String chatDir;
+
+	
 	private static Style YouStyle;
+	private static Style InvisibleStyle;
 	private static Style GPTStyle;
 	private static Style ChatStyle;
 	private static MainFrame INSTANCE = null;
@@ -109,6 +133,12 @@ public class MainFrame extends JFrame {
 
 			messages.clear();
 			readMessagesFromFile(fullfilepath);
+			if(isHTMLView) {
+				resetHTMLAreaStyle();
+				Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));
+				//System.out.println(renderer.render(document));
+				HTMLArea.setText(renderer.render(document));
+			}
 			
 			
 		} catch (Exception e) {
@@ -139,14 +169,16 @@ public class MainFrame extends JFrame {
                 ChatMessage message = gson.fromJson(line, ChatMessage.class);
                 if(message.getRole().equals("user")) {
                 	try {
-		    		    doc.insertString(doc.getLength(), "You\n", YouStyle);
+		    		    doc.insertString(doc.getLength(), "You", YouStyle);
+		    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
 		    		    doc.insertString(doc.getLength(), message.getContent() + "\n\n", ChatStyle);
 		    		} catch (BadLocationException e) {
 		    		    e.printStackTrace();
 		    		}	
                 }else{
                 	try {
-		    		    doc.insertString(doc.getLength(), "ChatGPT\n", GPTStyle);
+		    		    doc.insertString(doc.getLength(), "ChatGPT", GPTStyle);
+		    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
 		    		    doc.insertString(doc.getLength(), message.getContent() + "\n\n", ChatStyle);
 		    		} catch (BadLocationException e) {
 		    		    e.printStackTrace();
@@ -186,6 +218,8 @@ public class MainFrame extends JFrame {
     	FGPTConvo = null;
 		GPTConvo = "";
 		DisplayArea.setText("");
+		HTMLArea.setText("");
+		resetHTMLAreaStyle();
 		ChatArea.setText("");
 		setTitle("JavaGPT");
 		first = true;
@@ -272,27 +306,27 @@ public class MainFrame extends JFrame {
 					     }
 				      //----------------------------------------
 				        	
-					MainFrame frame = new MainFrame(); //Loads main JFrame
+					frame = new MainFrame(); //Loads main JFrame
 					 
 				//Scales JFrame based on "WindowSize" prop	
 				if(prop.getProperty("WindowSize").equals("small")){
 					
 					frame.getContentPane().setPreferredSize(new Dimension(475, 532));
-					
+					FormSize=1;
 				}else if(prop.getProperty("WindowSize").equals("large")){
-					
 					frame.getContentPane().setPreferredSize(new Dimension(1370, 960));
+					FormSize=2;
 					
 				}else {
 					
 					frame.getContentPane().setPreferredSize(new Dimension(686, 647));
-					
+					FormSize=3;
 				}
 				frame.pack();
 				frame.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("logo.png")));
 				//----------------------------------------
 				frame.setVisible(true);
-				
+							
 			}
 		});
 	}
@@ -315,13 +349,86 @@ public class MainFrame extends JFrame {
 		
 		JMenu OptionMenu = new JMenu("Options");
 		menuBar.add(OptionMenu);
+				
+		//Renderer and Parser for HTMLView
+		parser = Parser.builder().build();
+		renderer = HtmlRenderer.builder().build();
+		//
 		
-		JMenu mnNewMenu = new JMenu("Rename");
-		OptionMenu.add(mnNewMenu);
+		JMenuItem HTMLViewMenuItem = new JMenuItem("HTML View");
+		HTMLViewMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	if(isHTMLView) {										
+					try {
+						scrollPane.setViewportView(DisplayArea);						
+						HTMLViewMenuItem.setText("HTML View");
+						isHTMLView=false;
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}else {
+					try {
+						scrollPane.setViewportView(HTMLArea);						
+						resetHTMLAreaStyle();
+	    				Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));	    	
+	    				HTMLArea.setText(renderer.render(document));
+						HTMLViewMenuItem.setText("Normal View");
+						isHTMLView=true;
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					
+				}
+
+		    }
+		});
+			
+		OptionMenu.add(HTMLViewMenuItem);
 		
-		JMenuItem mntmNewMenuItem_3 = new JMenuItem("Auto");
-		mnNewMenu.add(mntmNewMenuItem_3);
-		mntmNewMenuItem_3.addActionListener(new ActionListener() {
+		JMenu FormSizeMenu = new JMenu("Form Size");
+		OptionMenu.add(FormSizeMenu);
+		
+		JMenuItem LargeMenuItem = new JMenuItem("Large");
+		FormSizeMenu.add(LargeMenuItem);
+		LargeMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	if(FormSize != 2) {
+		    	FormSize = 2;
+		    	setFormSize(2);	
+		    	}
+		    }
+		});
+		
+		JMenuItem MediumMenuItem = new JMenuItem("Medium");
+		FormSizeMenu.add(MediumMenuItem);
+		MediumMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	if(FormSize != 3) {
+		    	FormSize = 3;
+		    	setFormSize(3);	
+		    	}
+		    }
+		});
+		
+		JMenuItem SmallMenuItem = new JMenuItem("Small");
+		FormSizeMenu.add(SmallMenuItem);
+		SmallMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	if(FormSize != 1) {
+		    	FormSize = 1;
+		    	setFormSize(1);	
+		    	}
+		    }
+		});
+		
+		JMenu RenameMenu = new JMenu("Rename");
+		OptionMenu.add(RenameMenu);
+		
+		JMenuItem AutoMenuItem = new JMenuItem("Auto");
+		RenameMenu.add(AutoMenuItem);
+		AutoMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
 		    	if(FGPTConvo != null) {
 		    		AutoTitle();
@@ -333,10 +440,10 @@ public class MainFrame extends JFrame {
 		    }
 		});
 		
-		JMenuItem mntmNewMenuItem_4 = new JMenuItem("Manual");
-		mnNewMenu.add(mntmNewMenuItem_4);
+		JMenuItem ManualMenuItem = new JMenuItem("Manual");
+		RenameMenu.add(ManualMenuItem);
 		
-		mntmNewMenuItem_4.addActionListener(new ActionListener() {
+		ManualMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {		    			    	       	            
 		    	if(FGPTConvo != null) {
 		    	String title = JOptionPane.showInputDialog(null, "Please enter a title:", "Rename", JOptionPane.PLAIN_MESSAGE);
@@ -358,8 +465,8 @@ public class MainFrame extends JFrame {
 		    }
 		});
 		
-		JMenuItem mntmNewMenuItem_1 = new JMenuItem("Delete");
-		mntmNewMenuItem_1.addActionListener(new ActionListener() {
+		JMenuItem DeleteMenuItem = new JMenuItem("Delete");
+		DeleteMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
 		    	if(FGPTConvo != null && FGPTConvo.exists()) { //checks if the file exists		    		
 			        FGPTConvo.delete(); //deletes the file
@@ -370,10 +477,10 @@ public class MainFrame extends JFrame {
 		         
 		    }
 		});
-		OptionMenu.add(mntmNewMenuItem_1);
+		OptionMenu.add(DeleteMenuItem);
 		
-		JMenuItem mntmNewMenuItem_2 = new JMenuItem("About");
-		mntmNewMenuItem_2.addActionListener(new ActionListener() {
+		JMenuItem AboutMenuItem = new JMenuItem("About");
+		AboutMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {	    	
 		    	if(aframeopen != true) {
 					AboutFrame aframe = new AboutFrame();
@@ -390,7 +497,7 @@ public class MainFrame extends JFrame {
 		         
 		    }
 		});
-		OptionMenu.add(mntmNewMenuItem_2);
+		OptionMenu.add(AboutMenuItem);
 		
 		JMenu LoadChatButton = new JMenu("Load Chat");
 		LoadChatButton.addMouseListener(new MouseAdapter() {
@@ -411,8 +518,7 @@ public class MainFrame extends JFrame {
 			}
 		});
 		
-		menuBar.add(LoadChatButton);
-		
+		menuBar.add(LoadChatButton);		
 			
 		JMenu AutoSaveButton = new JMenu("Auto Save (Null)");
 		AutoSaveButton.addMouseListener(new MouseAdapter() {
@@ -435,7 +541,7 @@ public class MainFrame extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(null);			
 		
-		JScrollPane scrollPane = new JScrollPane();
+		scrollPane = new JScrollPane();
 		
 		contentPane.add(scrollPane);
 
@@ -444,9 +550,13 @@ public class MainFrame extends JFrame {
 		scrollPane.setViewportView(DisplayArea);
 		DisplayArea.setEditable(false);
 		DisplayArea.setContentType("text/rtf");
-
-		// Define a style for bold text
 		
+		HTMLArea = new JEditorPane();
+		HTMLArea.setEditable(false);
+		HTMLArea.setBackground(Color.white);
+		HTMLArea.setContentType("text/html");
+		//DisplayArea.setCharacterAttributes(attributeSet, true);
+		// Define a style for bold text
 		
 		StyleContext sc = StyleContext.getDefaultStyleContext();
 		
@@ -458,12 +568,16 @@ public class MainFrame extends JFrame {
 		}else {
 			StyleConstants.setForeground(YouStyle, Color.BLUE);
 		}
-		
-		
+								
 		GPTStyle = sc.addStyle("bold", null);
 		StyleConstants.setFontFamily(GPTStyle, "Tahoma");
 		StyleConstants.setBold(GPTStyle, true);
 		StyleConstants.setForeground(GPTStyle, Color.RED); //getHSBColor(0, 0.8f, 0.8f)
+		
+		InvisibleStyle = sc.addStyle("bold", null);
+		//StyleConstants.setFontFamily(InvisibleStyle, "Tahoma");
+		//StyleConstants.setBold(InvisibleStyle, true);
+		StyleConstants.setForeground(InvisibleStyle, DisplayArea.getBackground());		
 		
 		ChatStyle = sc.addStyle("black", null);
 		StyleConstants.setFontFamily(ChatStyle, "Tahoma");
@@ -478,34 +592,28 @@ public class MainFrame extends JFrame {
 		StyleConstants.setFontFamily(ErrorStyle, "Tahoma");
 	
 		doc = (StyledDocument) DisplayArea.getDocument();
-		//
-		SimpleAttributeSet codeBlockAttributes = new SimpleAttributeSet();
-		StyleConstants.setFontFamily(codeBlockAttributes, "Courier New");
-		StyleConstants.setFontSize(codeBlockAttributes, 10);
-		StyleConstants.setForeground(codeBlockAttributes, new Color(0, 128, 0));
-		StyleConstants.setSpaceBelow(codeBlockAttributes, 8);
-		StyleConstants.setSpaceAbove(codeBlockAttributes, 8);
-		StyleConstants.setAlignment(codeBlockAttributes, StyleConstants.ALIGN_LEFT);
-		StyleConstants.setLeftIndent(codeBlockAttributes, 20);
-		StyleConstants.setRightIndent(codeBlockAttributes, 20);
-		StyleConstants.setFirstLineIndent(codeBlockAttributes, -20);
-		//
 		
 		SubmitButton = new JButton("Submit");
 
 		SubmitButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+				if(isStreamRunning) {
+					isStreamRunning = false;
+					SubmitButton.setText("Submit");
+					return;
+				}
 				Thread myThread = new Thread(new Runnable() {				    
 				    public void run() {	
 				    	
-				    	SubmitButton.setText("Loading...");				    	
-				    	Boolean success = false;
+				    	SubmitButton.setText("Cancel Req");				    	
+				    	//Boolean success = false;
 				    					    
 				    	try {
-			    		    doc.insertString(doc.getLength(), "You\n", YouStyle);
+			    		    doc.insertString(doc.getLength(), "You", YouStyle);
+			    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
 			    		    doc.insertString(doc.getLength(), ChatArea.getText() + "\n\n", ChatStyle);
-			    		    doc.insertString(doc.getLength(), "ChatGPT\n", GPTStyle);
+			    		    doc.insertString(doc.getLength(), "ChatGPT", GPTStyle);
+			    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
 			    		} catch (BadLocationException e2) {
 			    		    e2.printStackTrace();
 			    		}	
@@ -527,8 +635,10 @@ public class MainFrame extends JFrame {
 					                    .logitBias(new HashMap<>())
 					                    .build();
 					            
+					            isStreamRunning = true;
 					            service.streamChatCompletion(chatCompletionRequest)
 					                    .doOnError(Throwable::printStackTrace)
+					                    .takeWhile(resultsBatch -> isStreamRunning)
 					                    .blockingForEach(chunk -> {					                    	
 					                        for (ChatCompletionChoice choice : chunk.getChoices()) {
 					                        	if(choice.getMessage().getContent() != null) {
@@ -537,46 +647,49 @@ public class MainFrame extends JFrame {
 									    		try {								    			
 									    			//String messageContent = new String(choice.getMessage().getContent().getBytes("UTF-8"), "UTF-8");
 									    			//doc.putProperty("console.encoding", "UTF-8");
-	
+									    										    			
 									    		    doc.insertString(doc.getLength(), choice.getMessage().getContent(), ChatStyle);
 									    			
 									    		} catch (BadLocationException e2) {
 									    		    e2.printStackTrace();
 									    		}	
-					                           //System.out.println(choice.getMessage());
-					                        }//
+					                        }
 					                    });
 					            try {
-					    		    doc.insertString(doc.getLength(), "\n\n", ChatStyle);		
+					            	doc.insertString(doc.getLength(), "\n\n", ChatStyle);
+					            	if(isHTMLView) {
+					            		resetHTMLAreaStyle();
+					    				Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));
+					    				HTMLArea.setText(renderer.render(document));
+					            	}
+					            						    		  
 					    		} catch (BadLocationException e2) {
 					    		    e2.printStackTrace();
 					    		}
 					            //service.shutdownExecutor();
 					            
+					            
 					            GPTConvo = GPTConvoBuilder.toString();
 					            final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), GPTConvo);
 					            messages.add(systemMessage);
-								if(first) {	
-								newFile();	
-				    			if(!autotitle) {					    				
-				    			first = false;			    			
-				    			}
-								}
 								
-								if(autosave) {				    		
+								
+								if(autosave && isStreamRunning) {
+									if(first) {	
+										newFile();							    			
+									}
 						    		try {
 										writeMessagesToFile(FGPTConvo.getPath());
 									} catch (IOException e) {
 										// TODO Auto-generated catch block
 										e.printStackTrace();
 									}
+						    		if(first && autotitle){					    				
+						    			AutoTitle();
+						    			first = false;
+						    		}
 						    	}
-						    	//Runs when autotitle is true and first is true
-						    	if(first) {
-						    		AutoTitle();
-						    		first = false;
-						    	}
-				    			
+						  				    			
 				    		}catch(Exception e) {
 				    			//JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 				    			try {
@@ -584,8 +697,9 @@ public class MainFrame extends JFrame {
 					    		} catch (BadLocationException e2) {
 					    		    e2.printStackTrace();
 					    		}
-				    			}					    						    	
-				    	
+				    		}
+				    		
+				    	isStreamRunning = false;
 				    	SubmitButton.setText("Submit");
 				    }
 				});
@@ -595,7 +709,7 @@ public class MainFrame extends JFrame {
 		contentPane.add(SubmitButton);
 				
 			
-		JButton ResetButton = new JButton("Reset");
+		ResetButton = new JButton("Reset");
 		ResetButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				Reset();
@@ -603,7 +717,7 @@ public class MainFrame extends JFrame {
 		});
 		contentPane.add(ResetButton);
 		
-		JScrollPane scrollPane_1 = new JScrollPane();
+		scrollPane_1 = new JScrollPane();
 		
 		contentPane.add(scrollPane_1);
 		
@@ -612,7 +726,7 @@ public class MainFrame extends JFrame {
 		scrollPane_1.setViewportView(ChatArea);
 		ChatArea.setLineWrap(true);
 		
-		JButton SaveButton = new JButton("");
+		SaveButton = new JButton("");
 		try {
 		SaveButton.setIcon(new ImageIcon(MainFrame.class.getResource("FloppyDrive.gif")));
 		}catch(Exception e4) {
@@ -621,32 +735,25 @@ public class MainFrame extends JFrame {
 		SaveButton.setFont(new Font("Arial Black", Font.BOLD, 6));
 		SaveButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-			      // Create a new JFileChooser
+
 				  File defaultDir = new File(".");
 			      JFileChooser fileChooser = new JFileChooser(defaultDir);
 			      fileChooser.setDialogTitle("Save chat");
-			      // Show the Save dialog
+
 			      int result = fileChooser.showSaveDialog(null);
 
 			      if (result == JFileChooser.APPROVE_OPTION) {
-			         // Get the selected file
+
 			         File selectedFile = fileChooser.getSelectedFile();
 
 			         try {
-			            // Create FileWriter object
-			            FileWriter writer = new FileWriter(selectedFile);
-			            
-			            //Convert rtf doc to plain txt
-			            String plaintext = DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength());
-			            
-			            // Write text to file
-			            writer.write(plaintext);
-
-			            // Close the writer
-			            writer.close();
-
-			            // Display a success message
+			        	 
+			            FileWriter writer = new FileWriter(selectedFile);		            
+			            String plaintext = DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength());			            			 
+			            writer.write(plaintext);			 
+			            writer.close();		 
 			            JOptionPane.showMessageDialog(null, "File saved successfully.");
+			            
 			         } catch (IOException e1) {			        	 
 			            e1.printStackTrace();
 			            JOptionPane.showMessageDialog(null, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -660,7 +767,7 @@ public class MainFrame extends JFrame {
 
 		contentPane.add(SaveButton);
 		
-		JButton ImportButton = new JButton("");
+		ImportButton = new JButton("");
 		ImportButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				 JFileChooser fileChooser = new JFileChooser();
@@ -684,14 +791,30 @@ public class MainFrame extends JFrame {
 		    @Override
 		    public void mousePressed(MouseEvent e) {
 		        if (e.isPopupTrigger()) {
-		            showPopupMenu(e.getX(), e.getY());
+		            showDisplayMenu(e.getX(), e.getY());
 		        }
 		    }
 
 		    @Override
 		    public void mouseReleased(MouseEvent e) {
 		        if (e.isPopupTrigger()) {
-		            showPopupMenu(e.getX(), e.getY());
+		            showDisplayMenu(e.getX(), e.getY());
+		        }
+		    }
+		});
+		
+		HTMLArea.addMouseListener(new MouseAdapter() {
+		    @Override
+		    public void mousePressed(MouseEvent e) {
+		        if (e.isPopupTrigger()) {
+		            showHTMLMenu(e.getX(), e.getY());
+		        }
+		    }
+
+		    @Override
+		    public void mouseReleased(MouseEvent e) {
+		        if (e.isPopupTrigger()) {
+		            showHTMLMenu(e.getX(), e.getY());
 		        }
 		    }
 		});
@@ -700,27 +823,38 @@ public class MainFrame extends JFrame {
 		    @Override
 		    public void mousePressed(MouseEvent e) {
 		        if (e.isPopupTrigger()) {
-		            showPopupMenu(e.getX(), e.getY());
+		            showChatMenu(e.getX(), e.getY());
 		        }
 		    }
 
 		    @Override
 		    public void mouseReleased(MouseEvent e) {
 		        if (e.isPopupTrigger()) {
-		            showPopupMenu2(e.getX(), e.getY());
+		            showChatMenu(e.getX(), e.getY());
 		        }
 		    }
 		});
 
-		    
+		HTMLArea.addHyperlinkListener(new HyperlinkListener() {
+		    public void hyperlinkUpdate(HyperlinkEvent e) {
+		        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+		        	try {
+						Desktop.getDesktop().browse(e.getURL().toURI());
+					} catch (IOException | URISyntaxException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+		        }
+		    }
+		});   
 		//Default
-		setBounds(100, 100, 702, 707); //Uncomment this when editing design
+		/*setBounds(100, 100, 702, 707); //Uncomment this when editing design
 		SubmitButton.setBounds(10, 554, 89, 23);
 		ResetButton.setBounds(10, 616, 89, 23);
 		scrollPane.setBounds(10, 11, 667, 532);
 		scrollPane_1.setBounds(109, 554, 568, 85);
 		SaveButton.setBounds(10, 585, 43, 23);
-		ImportButton.setBounds(56, 585, 43, 23);
+		ImportButton.setBounds(56, 585, 43, 23);*/
     	
 		
 		//Bulk property setting-------------------
@@ -767,7 +901,7 @@ public class MainFrame extends JFrame {
 	        	SubmitButton.setBounds(10, 454, 89, 23);
 	        	SaveButton.setBounds(10, 477, 43, 23);
 	        	ImportButton.setBounds(56, 477, 43, 23);
-	        	ResetButton.setBounds(10, 500, 89, 23);	        	
+	        	ResetButton.setBounds(10, 500, 89, 23);
 	        }else if(prop.getProperty("WindowSize").equals("large")) {
 	        	//setBounds(100, 100, 702, 707);
 	    		SubmitButton.setBounds(13, 831, 148, 36);
@@ -791,7 +925,7 @@ public class MainFrame extends JFrame {
 	        
 	    } 
 	}
-private void showPopupMenu(int x, int y) {
+private void showDisplayMenu(int x, int y) {
     JPopupMenu popupMenu = new JPopupMenu();
     JMenuItem copyMenuItem = new JMenuItem("Copy");
     copyMenuItem.addActionListener(new ActionListener() {
@@ -809,7 +943,25 @@ private void showPopupMenu(int x, int y) {
     popupMenu.show(DisplayArea, x, y);
 }
 
-private void showPopupMenu2(int x, int y) {
+private void showHTMLMenu(int x, int y) {
+    JPopupMenu popupMenu = new JPopupMenu();
+    JMenuItem copyMenuItem = new JMenuItem("Copy");
+    copyMenuItem.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String selectedText = HTMLArea.getSelectedText();
+            if (selectedText != null) {
+                StringSelection selection = new StringSelection(selectedText);
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(selection, null);
+            }
+        }
+    });
+    popupMenu.add(copyMenuItem);
+    popupMenu.show(HTMLArea, x, y);
+}
+
+private void showChatMenu(int x, int y) {
     JPopupMenu popupMenu = new JPopupMenu();
     
     JMenuItem copyMenuItem = new JMenuItem("Copy");
@@ -824,6 +976,8 @@ private void showPopupMenu2(int x, int y) {
             }
         }
     });
+    
+  
     popupMenu.add(copyMenuItem);
 
     JMenuItem pasteMenuItem = new JMenuItem("Paste");
@@ -880,15 +1034,12 @@ private void showPopupMenu2(int x, int y) {
                     for (ChatCompletionChoice choice : chunk.getChoices()) {
                     	if(choice.getMessage().getContent() != null) {
                     	TitleBuilder.append(choice.getMessage().getContent());	
-                    	}
-                        //System.out.println(choice.getMessage().getContent());
-                    }//
+                    	}                        
+                    }
                 });		    		        
 		        messages.remove(messages.size() - 1);
 		        
-		        String title = TitleBuilder.toString();
-		        
-		        //System.out.println(title);
+		        String title = TitleBuilder.toString();		        
 		        
 				title = title.replaceAll("[\\\\/:*?\"<>|]", "");
 				if(title.substring(title.length() - 1).equals(".")) {
@@ -918,4 +1069,42 @@ private void showPopupMenu2(int x, int y) {
 			myThread.start();	
 	}
 	
+	public static void resetHTMLAreaStyle() {
+		HTMLArea.setContentType("text/plain");
+		HTMLArea.setContentType("text/html");
+	}
+	
+	public void setFormSize(int size){
+		if(size==1){
+        	//setBounds(100, 100, 481, 584); //Uncomment this when editing design
+			frame.getContentPane().setPreferredSize(new Dimension(475, 532));
+			frame.pack();
+        	scrollPane_1.setBounds(103, 454, 363, 69);
+        	scrollPane.setBounds(10, 11, 456, 432);
+        	SubmitButton.setBounds(10, 454, 89, 23);
+        	SaveButton.setBounds(10, 477, 43, 23);
+        	ImportButton.setBounds(56, 477, 43, 23);
+        	ResetButton.setBounds(10, 500, 89, 23);
+        	
+        }else if(size==2) {
+        	//setBounds(100, 100, 702, 707);
+        	frame.getContentPane().setPreferredSize(new Dimension(1370, 960));
+        	frame.pack();
+    		SubmitButton.setBounds(13, 831, 148, 36);
+        	ResetButton.setBounds(13, 914, 148, 36);
+        	scrollPane.setBounds(13, 15, 1344, 802);
+        	scrollPane_1.setBounds(171, 831, 1186, 118);
+        	SaveButton.setBounds(13, 873, 73, 36);
+        	ImportButton.setBounds(88, 873, 73, 36);
+        }else {	
+        	frame.getContentPane().setPreferredSize(new Dimension(686, 647));
+			frame.pack();
+        	SubmitButton.setBounds(10, 554, 89, 23);
+    		ResetButton.setBounds(10, 616, 89, 23);
+    		scrollPane.setBounds(10, 11, 667, 532);
+    		scrollPane_1.setBounds(109, 554, 568, 85);
+    		SaveButton.setBounds(10, 585, 43, 23);
+    		ImportButton.setBounds(56, 585, 43, 23);
+        }
+	}
 }
