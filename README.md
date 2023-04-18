@@ -20,6 +20,12 @@ A Java GUI that interfaces ChatGPT API.
 - Chat Titles
 	- Autogenerate titles like ChatGPT website
 	- Manually name chats if preferred
+- HTML Viewer
+	- View your chat content in HTML
+	- Supports Markdown Language syntax
+
+![HTML View](https://i.imgur.com/W0pzIic.gif)
+
 - Import premade prompts
 - Save chats to file
 - Support for ChatGPT 4, and 3.5 models
