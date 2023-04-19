@@ -1,4 +1,8 @@
 
+<div>
+    <img src="https://i.imgur.com/Lv2dBHU.png" alt="Image description" style="display: inline-block; width: 80px; height: 80px;">
+</div>
+
 # JavaGPT
 
 A Java GUI that interfaces ChatGPT API.
@@ -11,6 +15,7 @@ A Java GUI that interfaces ChatGPT API.
 
 - Chat Streaming
 	- Just like the website, responses will generate in real time
+	- You can terminate a response while it is in progress
 - Chat History
 	- See and interact with previous chats
 	- Accessible through the "Load Chat" button
@@ -25,6 +30,7 @@ A Java GUI that interfaces ChatGPT API.
 	- Supports Markdown Language syntax
 
 ![HTML View](https://i.imgur.com/W0pzIic.gif)
+
 
 - Import premade prompts
 - Save chats to file
