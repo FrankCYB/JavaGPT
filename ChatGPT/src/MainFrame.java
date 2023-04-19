@@ -37,7 +37,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-
+import java.io.RandomAccessFile;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -100,7 +100,7 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.2.0";
+	public static String version = "1.2.5";
 	private Boolean first = true;
 	private Boolean autosave = true;
 	private Boolean autotitle = true;
@@ -433,7 +433,7 @@ public class MainFrame extends JFrame {
 		    	if(FGPTConvo != null) {
 		    		AutoTitle();
 		    	}else {
-		    		JOptionPane.showMessageDialog(null, "No file to rename", "Error", JOptionPane.ERROR_MESSAGE);
+		    		JOptionPane.showMessageDialog(null, "No chat file loaded", "Error", JOptionPane.ERROR_MESSAGE);
 		    	}
 		
 		    	
@@ -459,7 +459,7 @@ public class MainFrame extends JFrame {
 				}
 		      }
 		    	}else {
-		    		JOptionPane.showMessageDialog(null, "No file to rename", "Error", JOptionPane.ERROR_MESSAGE);
+		    		JOptionPane.showMessageDialog(null, "No chat file loaded", "Error", JOptionPane.ERROR_MESSAGE);
 		    	}
 		    	
 		    }
@@ -477,6 +477,42 @@ public class MainFrame extends JFrame {
 		         
 		    }
 		});
+		
+		JMenuItem RevertMenuItem = new JMenuItem("Revert");
+		RevertMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	if(FGPTConvo != null && FGPTConvo.exists()) { //checks if the file exists
+		    		try (RandomAccessFile f = new RandomAccessFile(FGPTConvo.getAbsolutePath(), "rw")) {
+		    		    long length = f.length();
+		    		    long position = length;
+		    		    int newlineCount = 0;
+
+		    		    while (newlineCount < 3 && position >= 0) {
+		    		        position--;
+		    		        f.seek(position);
+		    		        byte b = f.readByte();
+		    		        if (b == 0x0A) {
+		    		            newlineCount++;
+		    		        }
+		    		    }
+
+		    		    f.setLength(position + 1);
+		    		    try {
+							loadchat(FGPTConvo.getAbsolutePath(), FGPTConvo.getName());
+						} catch (BadLocationException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+		    		} catch (IOException e1) {
+		    		    // handle exception here
+		    		}
+		         } else {
+		        	 JOptionPane.showMessageDialog(null, "No chat file loaded", "Error", JOptionPane.ERROR_MESSAGE);
+		         }
+		         
+		    }
+		});
+		OptionMenu.add(RevertMenuItem);
 		OptionMenu.add(DeleteMenuItem);
 		
 		JMenuItem AboutMenuItem = new JMenuItem("About");
@@ -563,11 +599,6 @@ public class MainFrame extends JFrame {
 		YouStyle = sc.addStyle("bold", null);
 		StyleConstants.setFontFamily(YouStyle, "Tahoma");
 		StyleConstants.setBold(YouStyle, true);
-		if(seltheme == 1) {
-			StyleConstants.setForeground(YouStyle, Color.ORANGE); //getHSBColor(30f/360, 0.8f, 1f)
-		}else {
-			StyleConstants.setForeground(YouStyle, Color.BLUE);
-		}
 								
 		GPTStyle = sc.addStyle("bold", null);
 		StyleConstants.setFontFamily(GPTStyle, "Tahoma");
@@ -581,16 +612,21 @@ public class MainFrame extends JFrame {
 		
 		ChatStyle = sc.addStyle("black", null);
 		StyleConstants.setFontFamily(ChatStyle, "Tahoma");
-		if(seltheme == 1) {
-			StyleConstants.setForeground(ChatStyle, Color.WHITE); //Color.getHSBColor(0f, 0f, 0.8f)
-		}else {
-			StyleConstants.setForeground(ChatStyle, Color.BLACK);
-		}
-		
+
 		Style ErrorStyle = sc.addStyle("ErrorStyle", null);
 		StyleConstants.setItalic(ErrorStyle, true);
 		StyleConstants.setFontFamily(ErrorStyle, "Tahoma");
-	
+		
+		if(seltheme == 1) {
+			StyleConstants.setForeground(YouStyle, Color.ORANGE); //getHSBColor(30f/360, 0.8f, 1f)
+			StyleConstants.setForeground(ChatStyle, Color.WHITE); //Color.getHSBColor(0f, 0f, 0.8f)
+			StyleConstants.setForeground(ErrorStyle, Color.WHITE); //Color.getHSBColor(0f, 0f, 0.8f)
+		}else {
+			StyleConstants.setForeground(YouStyle, Color.BLUE);
+			StyleConstants.setForeground(ChatStyle, Color.BLACK);
+			StyleConstants.setForeground(ErrorStyle, Color.BLACK);					
+		}
+		
 		doc = (StyledDocument) DisplayArea.getDocument();
 		
 		SubmitButton = new JButton("Submit");
