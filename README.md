@@ -8,7 +8,7 @@
 A Java GUI that interfaces ChatGPT API.
 
 
-![](https://i.imgur.com/RD0DtHt.gif)
+![](https://i.imgur.com/EbL1VRv.gif)
 
 
 ## Features
