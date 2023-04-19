@@ -11,6 +11,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultCaret;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
@@ -253,9 +254,10 @@ public class MainFrame extends JFrame {
 				                prop.setProperty("maxTokens", "1024");
 				                prop.setProperty("timeout", "30");
 				                //prop.setProperty("proxyip", ""); // WIP Support will be added back
-				                //prop.setProperty("proxyport", ""); // WIP Support will be added back
+				                //prop.setProperty("proxyport", ""); // WIP Support will be added back				                
 				                prop.setProperty("autosave", "true");
 				                prop.setProperty("autotitle", "true");
+				                prop.setProperty("autoscroll", "true");
 				                prop.setProperty("chat_location_override", "");
 				                prop.setProperty("WindowSize", "");
 				                prop.setProperty("Theme", "dark");
@@ -349,7 +351,7 @@ public class MainFrame extends JFrame {
 		
 		JMenu OptionMenu = new JMenu("Options");
 		menuBar.add(OptionMenu);
-				
+		
 		//Renderer and Parser for HTMLView
 		parser = Parser.builder().build();
 		renderer = HtmlRenderer.builder().build();
@@ -498,7 +500,7 @@ public class MainFrame extends JFrame {
 
 		    		    f.setLength(position + 1);
 		    		    try {
-							loadchat(FGPTConvo.getAbsolutePath(), FGPTConvo.getName());
+							loadchat(FGPTConvo.getAbsolutePath(), FGPTConvo.getName().replaceFirst("[.][^.]+$", ""));
 						} catch (BadLocationException e1) {
 							// TODO Auto-generated catch block
 							e1.printStackTrace();
@@ -585,7 +587,7 @@ public class MainFrame extends JFrame {
 		DisplayArea = new JEditorPane();
 		scrollPane.setViewportView(DisplayArea);
 		DisplayArea.setEditable(false);
-		DisplayArea.setContentType("text/rtf");
+		DisplayArea.setContentType("text/rtf");		
 		
 		HTMLArea = new JEditorPane();
 		HTMLArea.setEditable(false);
@@ -895,11 +897,11 @@ public class MainFrame extends JFrame {
 		
 		//Bulk property setting-------------------
 	    try {
-	        if(prop.getProperty("proxyip") != null && prop.getProperty("proxyport") != null && !prop.getProperty("proxyip").isEmpty() && !prop.getProperty("proxyport").isEmpty()) {	        	
-	        	
-	        	
-	        }else {
-	        	
+	        if(prop.getProperty("autoscroll") != null && !prop.getProperty("autoscroll").isEmpty()) {	        	
+	        	if(prop.getProperty("autoscroll").equals("true")) {
+	        		DefaultCaret caret = (DefaultCaret)DisplayArea.getCaret();
+	        		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+	        	}        	
 	        }
 	        if(prop.getProperty("autosave").equals("true")){
 	        	autosave = true;
