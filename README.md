@@ -18,6 +18,7 @@ A Java GUI that interfaces ChatGPT API.
 	- You can terminate a response while it is in progress
 - Chat History
 	- See and interact with previous chats
+	- Saves chats as .json for easy external modification and viewing
 	- Accessible through the "Load Chat" button
 
 ![Demo](https://i.imgur.com/q3s1frY.gif)
@@ -27,7 +28,7 @@ A Java GUI that interfaces ChatGPT API.
 	- Manually name chats if preferred
 - Revert Chats
 	- Be able to void previous prompts and responses from chat
-	- You can void multiple prompts and responses
+	- You can revert multiple times
 - HTML Viewer
 	- View your chat content in HTML
 	- Supports Markdown Language syntax
