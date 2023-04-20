@@ -38,7 +38,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.io.RandomAccessFile;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -101,7 +100,7 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.2.5";
+	public static String version = "1.2.7";
 	private Boolean first = true;
 	private Boolean autosave = true;
 	private Boolean autotitle = true;
@@ -187,6 +186,29 @@ public class MainFrame extends JFrame {
                 }
                 messages.add(message);
             }
+        }
+    }
+    
+    public void refreshMessages() {
+    	DisplayArea.setText("");
+    	for (ChatMessage message : messages) {
+    		 if(message.getRole().equals("user")) {
+             	try {
+		    		    doc.insertString(doc.getLength(), "You", YouStyle);
+		    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
+		    		    doc.insertString(doc.getLength(), message.getContent() + "\n\n", ChatStyle);
+		    		} catch (BadLocationException e) {
+		    		    e.printStackTrace();
+		    		}	
+             }else{
+             	try {
+		    		    doc.insertString(doc.getLength(), "ChatGPT", GPTStyle);
+		    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
+		    		    doc.insertString(doc.getLength(), message.getContent() + "\n\n", ChatStyle);
+		    		} catch (BadLocationException e) {
+		    		    e.printStackTrace();
+		    		}	
+             }
         }
     }
     
@@ -483,33 +505,16 @@ public class MainFrame extends JFrame {
 		JMenuItem RevertMenuItem = new JMenuItem("Revert");
 		RevertMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
-		    	if(FGPTConvo != null && FGPTConvo.exists()) { //checks if the file exists
-		    		try (RandomAccessFile f = new RandomAccessFile(FGPTConvo.getAbsolutePath(), "rw")) {
-		    		    long length = f.length();
-		    		    long position = length;
-		    		    int newlineCount = 0;
-
-		    		    while (newlineCount < 3 && position >= 0) {
-		    		        position--;
-		    		        f.seek(position);
-		    		        byte b = f.readByte();
-		    		        if (b == 0x0A) {
-		    		            newlineCount++;
-		    		        }
-		    		    }
-
-		    		    f.setLength(position + 1);
-		    		    try {
-							loadchat(FGPTConvo.getAbsolutePath(), FGPTConvo.getName().replaceFirst("[.][^.]+$", ""));
-						} catch (BadLocationException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-						}
-		    		} catch (IOException e1) {
-		    		    // handle exception here
-		    		}
+		    	if(messages.size() >= 4) { //checks if the file exists
+		    		messages.remove(messages.size() - 1);
+		    		messages.remove(messages.size() - 1);
+		    		refreshMessages();
 		         } else {
-		        	 JOptionPane.showMessageDialog(null, "No chat file loaded", "Error", JOptionPane.ERROR_MESSAGE);
+		        	 if(messages.isEmpty()) {
+		        		 JOptionPane.showMessageDialog(null, "No chat loaded", "Error", JOptionPane.ERROR_MESSAGE);	  		        	 
+		        	 }else {
+		        		 JOptionPane.showMessageDialog(null, "Can't revert first prompt", "Error", JOptionPane.ERROR_MESSAGE);
+		        	 }
 		         }
 		         
 		    }
@@ -704,18 +709,21 @@ public class MainFrame extends JFrame {
 					    		} catch (BadLocationException e2) {
 					    		    e2.printStackTrace();
 					    		}
-					            //service.shutdownExecutor();
-					            
-					            
-					            GPTConvo = GPTConvoBuilder.toString();
-					            final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), GPTConvo);
-					            messages.add(systemMessage);
+					            //service.shutdownExecutor(); 
 								
-								
-								if(autosave && isStreamRunning) {
+								if(isStreamRunning) {
+									
+									GPTConvo = GPTConvoBuilder.toString();
+						            final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), GPTConvo);
+						            messages.add(systemMessage);
+						            
+								if(autosave) {
+									
 									if(first) {	
+										
 										newFile();							    			
 									}
+									
 						    		try {
 										writeMessagesToFile(FGPTConvo.getPath());
 									} catch (IOException e) {
@@ -727,6 +735,10 @@ public class MainFrame extends JFrame {
 						    			first = false;
 						    		}
 						    	}
+								}else {
+									messages.remove(messages.size() - 1);
+									doc.insertString(doc.getLength(), "Note: The previous prompt and response did not save as it was canceled" + "\n\n", ErrorStyle);
+								}
 						  				    			
 				    		}catch(Exception e) {
 				    			//JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -747,7 +759,7 @@ public class MainFrame extends JFrame {
 		contentPane.add(SubmitButton);
 				
 			
-		ResetButton = new JButton("Reset");
+		ResetButton = new JButton("New Chat");
 		ResetButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				Reset();
@@ -1022,17 +1034,31 @@ private void showChatMenu(int x, int y) {
     pasteMenuItem.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-            Transferable contents = clipboard.getContents(null);
-            if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                try {
-                    String text = (String) contents.getTransferData(DataFlavor.stringFlavor);
-                    int caretPos = ChatArea.getCaretPosition();
-                    ChatArea.insert(text, caretPos);
-                } catch (UnsupportedFlavorException | IOException ex) {
-                    ex.printStackTrace();
-                }
-            }
+        	 String selectedText = ChatArea.getSelectedText();
+        	    if (selectedText != null && !selectedText.isEmpty()) {
+        	        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        	        Transferable contents = clipboard.getContents(null);
+        	        if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+        	            try {
+        	                String clipboardText = (String) contents.getTransferData(DataFlavor.stringFlavor);
+        	                ChatArea.replaceSelection(clipboardText);
+        	            } catch (UnsupportedFlavorException | IOException ex) {
+        	                ex.printStackTrace();
+        	            }
+        	        }
+        	    } else {
+        	        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        	        Transferable contents = clipboard.getContents(null);
+        	        if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+        	            try {
+        	                String clipboardText = (String) contents.getTransferData(DataFlavor.stringFlavor);
+        	                int caretPos = ChatArea.getCaretPosition();
+        	                ChatArea.insert(clipboardText, caretPos);
+        	            } catch (UnsupportedFlavorException | IOException ex) {
+        	                ex.printStackTrace();
+        	            }
+        	        }
+        	    }
         }
     });
     popupMenu.add(pasteMenuItem);
