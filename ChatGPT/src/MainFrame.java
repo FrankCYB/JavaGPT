@@ -28,6 +28,8 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -100,7 +102,7 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.2.7";
+	public static String version = "1.2.8";
 	private Boolean first = true;
 	private Boolean autosave = true;
 	private Boolean autotitle = true;
@@ -121,6 +123,7 @@ public class MainFrame extends JFrame {
 	private static Style InvisibleStyle;
 	private static Style GPTStyle;
 	private static Style ChatStyle;
+	private static Style ErrorStyle;
 	private static MainFrame INSTANCE = null;
 	
 
@@ -236,8 +239,9 @@ public class MainFrame extends JFrame {
 		setTitle("JavaGPT - Chat_" + randfilename);	
     }
     
-    public void Reset() { 
-    	messages.clear();
+    public void Reset() {
+    	isStreamRunning = false;
+    	messages.clear();    	
     	FGPTConvo = null;
 		GPTConvo = "";
 		DisplayArea.setText("");
@@ -620,7 +624,7 @@ public class MainFrame extends JFrame {
 		ChatStyle = sc.addStyle("black", null);
 		StyleConstants.setFontFamily(ChatStyle, "Tahoma");
 
-		Style ErrorStyle = sc.addStyle("ErrorStyle", null);
+		ErrorStyle = sc.addStyle("ErrorStyle", null);
 		StyleConstants.setItalic(ErrorStyle, true);
 		StyleConstants.setFontFamily(ErrorStyle, "Tahoma");
 		
@@ -640,120 +644,7 @@ public class MainFrame extends JFrame {
 
 		SubmitButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if(isStreamRunning) {
-					isStreamRunning = false;
-					SubmitButton.setText("Submit");
-					return;
-				}
-				Thread myThread = new Thread(new Runnable() {				    
-				    public void run() {	
-				    	
-				    	SubmitButton.setText("Cancel Req");				    	
-				    	//Boolean success = false;
-				    					    
-				    	try {
-			    		    doc.insertString(doc.getLength(), "You", YouStyle);
-			    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
-			    		    doc.insertString(doc.getLength(), ChatArea.getText() + "\n\n", ChatStyle);
-			    		    doc.insertString(doc.getLength(), "ChatGPT", GPTStyle);
-			    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
-			    		} catch (BadLocationException e2) {
-			    		    e2.printStackTrace();
-			    		}	
-				    	
-				    	
-				    		try {
-								
-						    	StringBuilder GPTConvoBuilder = new StringBuilder();						    	
-						    							    	
-					            final ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), ChatArea.getText());
-					            messages.add(userMessage);
-					            
-					            ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest
-					                    .builder()
-					                    .model(prop.getProperty("model"))
-					                    .messages(messages)
-					                    .n(1)
-					                    .maxTokens(Integer.parseInt(prop.getProperty("maxTokens")))
-					                    .logitBias(new HashMap<>())
-					                    .build();
-					            
-					            isStreamRunning = true;
-					            service.streamChatCompletion(chatCompletionRequest)
-					                    .doOnError(Throwable::printStackTrace)
-					                    .takeWhile(resultsBatch -> isStreamRunning)
-					                    .blockingForEach(chunk -> {					                    	
-					                        for (ChatCompletionChoice choice : chunk.getChoices()) {
-					                        	if(choice.getMessage().getContent() != null) {
-					                        	GPTConvoBuilder.append(choice.getMessage().getContent());
-					                        	}
-									    		try {								    			
-									    			//String messageContent = new String(choice.getMessage().getContent().getBytes("UTF-8"), "UTF-8");
-									    			//doc.putProperty("console.encoding", "UTF-8");
-									    										    			
-									    		    doc.insertString(doc.getLength(), choice.getMessage().getContent(), ChatStyle);
-									    			
-									    		} catch (BadLocationException e2) {
-									    		    e2.printStackTrace();
-									    		}	
-					                        }
-					                    });
-					            try {
-					            	doc.insertString(doc.getLength(), "\n\n", ChatStyle);
-					            	if(isHTMLView) {
-					            		resetHTMLAreaStyle();
-					    				Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));
-					    				HTMLArea.setText(renderer.render(document));
-					            	}
-					            						    		  
-					    		} catch (BadLocationException e2) {
-					    		    e2.printStackTrace();
-					    		}
-					            //service.shutdownExecutor(); 
-								
-								if(isStreamRunning) {
-									
-									GPTConvo = GPTConvoBuilder.toString();
-						            final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), GPTConvo);
-						            messages.add(systemMessage);
-						            
-								if(autosave) {
-									
-									if(first) {	
-										
-										newFile();							    			
-									}
-									
-						    		try {
-										writeMessagesToFile(FGPTConvo.getPath());
-									} catch (IOException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-						    		if(first && autotitle){					    				
-						    			AutoTitle();
-						    			first = false;
-						    		}
-						    	}
-								}else {
-									messages.remove(messages.size() - 1);
-									doc.insertString(doc.getLength(), "Note: The previous prompt and response did not save as it was canceled" + "\n\n", ErrorStyle);
-								}
-						  				    			
-				    		}catch(Exception e) {
-				    			//JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-				    			try {
-					    		    doc.insertString(doc.getLength(), "Error: " + e.getMessage() + "\n\n", ErrorStyle);
-					    		} catch (BadLocationException e2) {
-					    		    e2.printStackTrace();
-					    		}
-				    		}
-				    		
-				    	isStreamRunning = false;
-				    	SubmitButton.setText("Submit");
-				    }
-				});
-				myThread.start(); // Start the thread				
+				submit();	
 			}
 		});
 		contentPane.add(SubmitButton);
@@ -775,6 +666,14 @@ public class MainFrame extends JFrame {
 		ChatArea.setWrapStyleWord(true);
 		scrollPane_1.setViewportView(ChatArea);
 		ChatArea.setLineWrap(true);
+		
+		ChatArea.addKeyListener(new KeyAdapter() {
+		    public void keyPressed(KeyEvent e) {
+		        if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isControlDown()) {
+		        	submit();
+		        }
+		    }
+		});
 		
 		SaveButton = new JButton("");
 		try {
@@ -974,6 +873,128 @@ public class MainFrame extends JFrame {
 	        JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 	        
 	    } 
+	}
+	
+
+	private void submit() {
+		if(isStreamRunning) {
+			isStreamRunning = false;
+			SubmitButton.setText("Submit");
+			return;
+		}
+		Thread myThread = new Thread(new Runnable() {				    
+		    public void run() {	
+		    	
+		    	SubmitButton.setText("Cancel Req");				    	
+		    	//Boolean success = false;
+		    					    
+		    	try {
+	    		    doc.insertString(doc.getLength(), "You", YouStyle);
+	    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
+	    		    doc.insertString(doc.getLength(), ChatArea.getText() + "\n\n", ChatStyle);
+	    		    doc.insertString(doc.getLength(), "ChatGPT", GPTStyle);
+	    		    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
+	    		} catch (BadLocationException e2) {
+	    		    e2.printStackTrace();
+	    		}	
+		    	
+		    	
+		    		try {
+						
+				    	StringBuilder GPTConvoBuilder = new StringBuilder();						    	
+				    							    	
+			            final ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), ChatArea.getText());
+			            messages.add(userMessage);
+			            
+			            ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest
+			                    .builder()
+			                    .model(prop.getProperty("model"))
+			                    .messages(messages)
+			                    .n(1)
+			                    .maxTokens(Integer.parseInt(prop.getProperty("maxTokens")))
+			                    .logitBias(new HashMap<>())
+			                    .build();
+			            
+			            isStreamRunning = true;
+			            service.streamChatCompletion(chatCompletionRequest)
+			                    .doOnError(Throwable::printStackTrace)
+			                    .takeWhile(resultsBatch -> isStreamRunning)
+			                    .blockingForEach(chunk -> {					                    	
+			                        for (ChatCompletionChoice choice : chunk.getChoices()) {
+			                        	if(choice.getMessage().getContent() != null) {
+			                        	GPTConvoBuilder.append(choice.getMessage().getContent());
+			                        	}
+							    		try {								    			
+							    			//String messageContent = new String(choice.getMessage().getContent().getBytes("UTF-8"), "UTF-8");
+							    			//doc.putProperty("console.encoding", "UTF-8");
+							    										    			
+							    		    doc.insertString(doc.getLength(), choice.getMessage().getContent(), ChatStyle);
+							    			
+							    		} catch (BadLocationException e2) {
+							    		    e2.printStackTrace();
+							    		}	
+			                        }
+			                    });
+			            
+			            //service.shutdownExecutor(); 
+						
+						if(isStreamRunning) {
+							
+							try {
+				            	doc.insertString(doc.getLength(), "\n\n", ChatStyle);
+				            	if(isHTMLView) {
+				            		resetHTMLAreaStyle();
+				    				Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));
+				    				HTMLArea.setText(renderer.render(document));
+				            	}
+				            						    		  
+				    		} catch (BadLocationException e2) {
+				    		    e2.printStackTrace();
+				    		}
+							
+							GPTConvo = GPTConvoBuilder.toString();
+				            final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), GPTConvo);
+				            messages.add(systemMessage);
+				            
+						if(autosave) {
+							
+							if(first) {	
+								
+								newFile();							    			
+							}
+							
+				    		try {
+								writeMessagesToFile(FGPTConvo.getPath());
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+				    		if(first && autotitle){					    				
+				    			AutoTitle();
+				    			first = false;
+				    		}
+				    	}
+						}else {
+							if(messages.size() != 0) {
+							messages.remove(messages.size() - 1);
+							doc.insertString(doc.getLength(), "\n\n" + "Note: The previous prompt and response did not save as it was canceled" + "\n\n", ErrorStyle);
+							}
+						}
+				  				    			
+		    		}catch(Exception e) {
+		    			//JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		    			try {
+			    		    doc.insertString(doc.getLength(), "Error: " + e.getMessage() + "\n\n", ErrorStyle);
+			    		} catch (BadLocationException e2) {
+			    		    e2.printStackTrace();
+			    		}
+		    		}
+		    		
+		    	isStreamRunning = false;
+		    	SubmitButton.setText("Submit");
+		    }
+		});
+		myThread.start(); // Start the thread		
 	}
 private void showDisplayMenu(int x, int y) {
     JPopupMenu popupMenu = new JPopupMenu();
