@@ -42,7 +42,7 @@ public class AboutFrame extends JFrame {
 		lblNewLabel_1.setBounds(118, 105, 169, 51);
 		contentPane.add(lblNewLabel_1);
 		
-		JLabel lblNewLabel_2 = new JLabel("(April 22 2023)");
+		JLabel lblNewLabel_2 = new JLabel("(April 25 2023)");
 		lblNewLabel_2.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		lblNewLabel_2.setBounds(142, 145, 114, 28);
 		contentPane.add(lblNewLabel_2);

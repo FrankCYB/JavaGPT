@@ -28,8 +28,6 @@ public class ChatLoader extends JFrame {
 	private JPopupMenu popupMenu2;
 	private String path;
 	private int selectedIndex;
-	
-
 
 	/**
 	 * Launch the application.
@@ -89,7 +87,7 @@ public class ChatLoader extends JFrame {
 	        popupMenu = new JPopupMenu();
 	        popupMenu2 = new JPopupMenu();
 
-	        // Add menu items to the popup menu
+	        // Add menu items to the PopupMenu
 	        JMenuItem deleteItem = new JMenuItem("Delete");
 	        JMenuItem renameItem = new JMenuItem("Rename");	        
 	        JMenuItem refreshItems = new JMenuItem("Refresh");
@@ -106,6 +104,8 @@ public class ChatLoader extends JFrame {
 	        popupMenu2.add(refreshItems2);
 	        popupMenu2.add(sortItems2);
 	        
+	        
+	        //Deletes selected chat file from fileList if it exists
 	        deleteItem.addActionListener(new ActionListener() {
 	            public void actionPerformed(ActionEvent e) {          
 	            	    	
@@ -120,6 +120,8 @@ public class ChatLoader extends JFrame {
 	            }
 	        });
 	        
+	        
+	        //Renames selected chat file from fileList if it exists
 	        renameItem.addActionListener(new ActionListener() {
 	            public void actionPerformed(ActionEvent e) {	            		            			    					    	
 					    	String title = JOptionPane.showInputDialog(null, "Please enter a title:", "Rename", JOptionPane.PLAIN_MESSAGE);
@@ -144,6 +146,7 @@ public class ChatLoader extends JFrame {
 	            }
 	        });
 	        
+	        //Adds ActionListners to JPopMenu elements
 	        refreshItems.addActionListener(new ActionListener() {
 	            public void actionPerformed(ActionEvent e) {
 	            	refreshlist();
@@ -169,8 +172,9 @@ public class ChatLoader extends JFrame {
 	            	refreshlist();
 	            }
 	        });
+	        //------------------------------------------
 	        
-	        // Attach the popup menu to the JList using a MouseListener
+	        //Sends selected chat file to MainFrame.loadchat() and loads it into the main JFrame
 	        fileList.addMouseListener(new MouseAdapter() {
 	            public void mousePressed(MouseEvent e) {
 	                if (e.isPopupTrigger()) showPopupMenu(e);
@@ -197,21 +201,12 @@ public class ChatLoader extends JFrame {
 	        JScrollPane scrollPane = new JScrollPane(fileList);
 			scrollPane.setViewportView(fileList);
 			contentPane.add(scrollPane);
-	}
+	}	
 	
-	/*public void refreshlist() {
-		File directory = new File(path);
-		model.clear();
-        for (File file : directory.listFiles()) {
-            if (file.isFile() && file.getName().endsWith(".json")) {
-            	String displayName = file.getName();
-                String filePath = file.getAbsolutePath();
-                FileListItem item = new FileListItem(displayName.replaceFirst("[.][^.]+$", ""), filePath);
-                model.addElement(item);
-            }
-        }
-	}*/
-	
+	//Refreshes a list with file names from a directory. 
+	//The directory is represented by the "path" variable. 
+	//The function applies a file filter that only accepts files with ".json" extension and sorts them by the date of last modification or alphabetically depending on the value of the "isAlpha" static boolean variable. 
+	//Finally, it creates a new list item for each file, which contains its name and complete path without an extension, and adds it to the list model.
 	public void refreshlist() {
 	    File directory = new File(path);
 	    model.clear();
@@ -238,6 +233,7 @@ public class ChatLoader extends JFrame {
 	    }
 	}
 	
+	//Shows correct PopupMenu on right-click based on if a file from fileList is selected
 	private void showPopupMenu(MouseEvent e) {
         selectedIndex = fileList.getSelectedIndex();
         if (selectedIndex == -1) {

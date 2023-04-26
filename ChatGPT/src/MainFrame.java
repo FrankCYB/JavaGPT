@@ -22,6 +22,7 @@ import com.jtattoo.plaf.hifi.HiFiLookAndFeel;
 
 
 import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
 //import javax.swing.JTextPane;
 import javax.swing.UIManager;
 import javax.swing.JButton;
@@ -59,7 +60,6 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 
-//import java.awt.Frame; //Uncomment this when editing design
 import javax.swing.ImageIcon;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
@@ -102,10 +102,11 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.2.8";
+	public static String version = "1.2.9";
 	private Boolean first = true;
 	private Boolean autosave = true;
 	private Boolean autotitle = true;
+	private Boolean enter2submit = true;
 	private Boolean cloaderopen = false;
 	private Boolean aframeopen = false;
 	private static Boolean isHTMLView = false;
@@ -118,7 +119,7 @@ public class MainFrame extends JFrame {
 	private ChatLoader cloader;
 	private String chatDir;
 
-	
+	//Initializing Style objects for RTF text in DisplayArea	
 	private static Style YouStyle;
 	private static Style InvisibleStyle;
 	private static Style GPTStyle;
@@ -126,7 +127,10 @@ public class MainFrame extends JFrame {
 	private static Style ErrorStyle;
 	private static MainFrame INSTANCE = null;
 	
-
+	//This function is used to load a chat from a file specified by the full file path and filename. 
+	//It sets the title of the instance to include the filename and clears the display area. 
+	//It also resets the messages and reads them from the file. If the view is set to HTML, it resets the HTML area style and renders the document. 
+	//If there is an exception, it displays an error message and prints the stack trace. Finally, it sets the FGPTConvo file and sets the first flag to false.	
     public static void loadchat(String fullfilepath, String filename) throws BadLocationException {
 
     	INSTANCE.setTitle("JavaGPT - " + filename);
@@ -154,6 +158,7 @@ public class MainFrame extends JFrame {
 		
     }
     
+    //Writes chat contents to .json format    
     public void writeMessagesToFile(String filename) throws IOException {
     	try (PrintWriter writer = new PrintWriter(filename)) {
             Gson gson = new Gson();
@@ -163,7 +168,8 @@ public class MainFrame extends JFrame {
             }
         }
     }
-
+    
+    //Reads chat contents from provided .json, stores it in the messages ArrayList and outputs contents in DisplayArea 
     public static void readMessagesFromFile(String filename) throws IOException {
     	try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line;
@@ -192,6 +198,7 @@ public class MainFrame extends JFrame {
         }
     }
     
+    //Refreshes DisplayArea contents with current messages ArrayList items   
     public void refreshMessages() {
     	DisplayArea.setText("");
     	for (ChatMessage message : messages) {
@@ -215,6 +222,8 @@ public class MainFrame extends JFrame {
         }
     }
     
+    
+    //Used in newFile() to create a new file name (Ex: Chat_x0y, Chat_09k, Chat_rc7)   
     public static String getRandomString() {
         String letters = "abcdefghijklmnopqrstuvwxyz1234567890";
         Random rand = new Random();
@@ -229,6 +238,7 @@ public class MainFrame extends JFrame {
     }
     
     
+    //Creates a new chat file by setting FGPTConvo File object to a new file name   
     public void newFile() {
     	String randfilename = getRandomString();
 		FGPTConvo = new File(chatDir + "\\Chat_" + randfilename  + ".json");
@@ -239,6 +249,7 @@ public class MainFrame extends JFrame {
 		setTitle("JavaGPT - Chat_" + randfilename);	
     }
     
+    //Resets all objects used for chat. Is invoked when "New Chat" is pressed or a chat file is loaded  
     public void Reset() {
     	isStreamRunning = false;
     	messages.clear();    	
@@ -284,6 +295,7 @@ public class MainFrame extends JFrame {
 				                prop.setProperty("autosave", "true");
 				                prop.setProperty("autotitle", "true");
 				                prop.setProperty("autoscroll", "true");
+				                prop.setProperty("EnterToSubmit", "true");
 				                prop.setProperty("chat_location_override", "");
 				                prop.setProperty("WindowSize", "");
 				                prop.setProperty("Theme", "dark");
@@ -353,6 +365,8 @@ public class MainFrame extends JFrame {
 				frame.pack();
 				frame.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("logo.png")));
 				//----------------------------------------
+				
+				//Makes JFrame visible			
 				frame.setVisible(true);
 							
 			}
@@ -370,6 +384,8 @@ public class MainFrame extends JFrame {
 		
 		setTitle("JavaGPT");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		//Initializes OpenAI's ChatGPT API with provided API key
 		service = new OpenAiService(prop.getProperty("apikey"),(prop.getProperty("timeout") == null && prop.getProperty("timeout").isEmpty()) ? Duration.ZERO : Duration.ofSeconds(Long.parseLong(prop.getProperty("timeout"))));
 		
 		menuBar = new JMenuBar();
@@ -382,7 +398,9 @@ public class MainFrame extends JFrame {
 		parser = Parser.builder().build();
 		renderer = HtmlRenderer.builder().build();
 		//
-		
+		//Code for HTML Viewer JMenu. If clicked, it will set isHTMLView to its counter value.
+		//If true, it will switch scrollPane to show HTMLArea and display the plain text contents for DisplayArea in it
+		//If false, it will switch scrollPane to show DisplayArea
 		JMenuItem HTMLViewMenuItem = new JMenuItem("HTML View");
 		HTMLViewMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
@@ -415,6 +433,8 @@ public class MainFrame extends JFrame {
 			
 		OptionMenu.add(HTMLViewMenuItem);
 		
+		
+		//Will scale the JFrame based on preset dimensions for JMenu options Large, Medium, & Small		
 		JMenu FormSizeMenu = new JMenu("Form Size");
 		OptionMenu.add(FormSizeMenu);
 		
@@ -450,10 +470,13 @@ public class MainFrame extends JFrame {
 		    	}
 		    }
 		});
+		//----------------------------------------------------------------------------------
+		
 		
 		JMenu RenameMenu = new JMenu("Rename");
 		OptionMenu.add(RenameMenu);
 		
+		//Rename option which when clicked has ChatGPT generate a title based on current chat context
 		JMenuItem AutoMenuItem = new JMenuItem("Auto");
 		RenameMenu.add(AutoMenuItem);
 		AutoMenuItem.addActionListener(new ActionListener() {
@@ -468,9 +491,13 @@ public class MainFrame extends JFrame {
 		    }
 		});
 		
+		//This code adds a manual menu item to a rename menu. 
+		//When the manual menu item is clicked, it prompts the user to enter a title for the file to be renamed. 
+		//If the file already exists with the inputted title, an error message is shown. 
+		//Otherwise, the file is renamed and a success message is shown along with the new title in the window title bar. 
+		//However, if no file is loaded, an error message is shown.
 		JMenuItem ManualMenuItem = new JMenuItem("Manual");
-		RenameMenu.add(ManualMenuItem);
-		
+		RenameMenu.add(ManualMenuItem);	
 		ManualMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {		    			    	       	            
 		    	if(FGPTConvo != null) {
@@ -492,7 +519,8 @@ public class MainFrame extends JFrame {
 		    	
 		    }
 		});
-		
+				
+		//Deletes chat file if it exists
 		JMenuItem DeleteMenuItem = new JMenuItem("Delete");
 		DeleteMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
@@ -506,6 +534,7 @@ public class MainFrame extends JFrame {
 		    }
 		});
 		
+		//Reverts chat contents to previous state by removing the last prompt & response from messages ArrayList and reloads the DisplayArea
 		JMenuItem RevertMenuItem = new JMenuItem("Revert");
 		RevertMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
@@ -526,6 +555,7 @@ public class MainFrame extends JFrame {
 		OptionMenu.add(RevertMenuItem);
 		OptionMenu.add(DeleteMenuItem);
 		
+		//Opens "About" JFrame
 		JMenuItem AboutMenuItem = new JMenuItem("About");
 		AboutMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {	    	
@@ -546,6 +576,7 @@ public class MainFrame extends JFrame {
 		});
 		OptionMenu.add(AboutMenuItem);
 		
+		//Opens "ChatLoader" (Chat History) JFrame
 		JMenu LoadChatButton = new JMenu("Load Chat");
 		LoadChatButton.addMouseListener(new MouseAdapter() {
 			@Override
@@ -566,7 +597,8 @@ public class MainFrame extends JFrame {
 		});
 		
 		menuBar.add(LoadChatButton);		
-			
+		
+		//Sets "autosave" to false or true depending on what its set to when clicked
 		JMenu AutoSaveButton = new JMenu("Auto Save (Null)");
 		AutoSaveButton.addMouseListener(new MouseAdapter() {
 			@Override
@@ -602,9 +634,8 @@ public class MainFrame extends JFrame {
 		HTMLArea.setEditable(false);
 		HTMLArea.setBackground(Color.white);
 		HTMLArea.setContentType("text/html");
-		//DisplayArea.setCharacterAttributes(attributeSet, true);
-		// Define a style for bold text
-		
+
+		//Sets properties for Style objects
 		StyleContext sc = StyleContext.getDefaultStyleContext();
 		
 		YouStyle = sc.addStyle("bold", null);
@@ -617,8 +648,6 @@ public class MainFrame extends JFrame {
 		StyleConstants.setForeground(GPTStyle, Color.RED); //getHSBColor(0, 0.8f, 0.8f)
 		
 		InvisibleStyle = sc.addStyle("bold", null);
-		//StyleConstants.setFontFamily(InvisibleStyle, "Tahoma");
-		//StyleConstants.setBold(InvisibleStyle, true);
 		StyleConstants.setForeground(InvisibleStyle, DisplayArea.getBackground());		
 		
 		ChatStyle = sc.addStyle("black", null);
@@ -637,19 +666,21 @@ public class MainFrame extends JFrame {
 			StyleConstants.setForeground(ChatStyle, Color.BLACK);
 			StyleConstants.setForeground(ErrorStyle, Color.BLACK);					
 		}
+		//------------------------------------
 		
 		doc = (StyledDocument) DisplayArea.getDocument();
 		
+		
+		//"Submit" button
 		SubmitButton = new JButton("Submit");
-
 		SubmitButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				submit();	
+				submit();				
 			}
 		});
 		contentPane.add(SubmitButton);
 				
-			
+		//"New Chat" button	
 		ResetButton = new JButton("New Chat");
 		ResetButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -667,14 +698,24 @@ public class MainFrame extends JFrame {
 		scrollPane_1.setViewportView(ChatArea);
 		ChatArea.setLineWrap(true);
 		
+		//Makes hotkeys for ChatArea
 		ChatArea.addKeyListener(new KeyAdapter() {
 		    public void keyPressed(KeyEvent e) {
-		        if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isControlDown()) {
+		    	if(enter2submit) {
+		        if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isShiftDown()) {
+		        	ChatArea.append("\n");
+		        }else if(e.getKeyCode() == KeyEvent.VK_ENTER) {
 		        	submit();
 		        }
+		    	}else {
+		    		if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isControlDown()) {
+		    			submit();
+			        }
+		    	}
 		    }
 		});
 		
+		//Save Button code: takes contents of DisplayArea and saves it in plain text in user selected location with user provided filename
 		SaveButton = new JButton("");
 		try {
 		SaveButton.setIcon(new ImageIcon(MainFrame.class.getResource("FloppyDrive.gif")));
@@ -716,6 +757,7 @@ public class MainFrame extends JFrame {
 
 		contentPane.add(SaveButton);
 		
+		//Imports user selected file and sets contents to ChatArea
 		ImportButton = new JButton("");
 		ImportButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -736,6 +778,7 @@ public class MainFrame extends JFrame {
 		ImportButton.setIcon(new ImageIcon(MainFrame.class.getResource("upFolder.gif")));
 		contentPane.add(ImportButton);
 		
+		//Right-click menu MouseListners for various chat elements
 		DisplayArea.addMouseListener(new MouseAdapter() {
 		    @Override
 		    public void mousePressed(MouseEvent e) {
@@ -783,7 +826,9 @@ public class MainFrame extends JFrame {
 		        }
 		    }
 		});
+		//--------------------------------------------------------------------
 
+		//Allows for HTMLArea to have HyperLinks
 		HTMLArea.addHyperlinkListener(new HyperlinkListener() {
 		    public void hyperlinkUpdate(HyperlinkEvent e) {
 		        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
@@ -814,6 +859,7 @@ public class MainFrame extends JFrame {
 	        		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 	        	}        	
 	        }
+	        
 	        if(prop.getProperty("autosave").equals("true")){
 	        	autosave = true;
 	        	AutoSaveButton.setText("Auto Save (On)");
@@ -827,6 +873,15 @@ public class MainFrame extends JFrame {
 	        }else{
 	        	autotitle = false;
 	        }
+	        
+	        if(prop.getProperty("EnterToSubmit") != null && !prop.getProperty("EnterToSubmit").isEmpty()) {
+	        if(prop.getProperty("EnterToSubmit").equals("true")){
+	        	ChatArea.getInputMap().put(KeyStroke.getKeyStroke("ENTER"), "none");	        	
+	        }else{
+	        	enter2submit = false;
+	        }
+	        }
+	        
 	        
 	        if(prop.getProperty("chat_location_override") != null && !prop.getProperty("chat_location_override").isEmpty()){
 	        	chatDir = prop.getProperty("chat_location_override");
@@ -875,7 +930,7 @@ public class MainFrame extends JFrame {
 	    } 
 	}
 	
-
+	//Processes ChatArea contents submitted by user to ChatGPT API and displays response
 	private void submit() {
 		if(isStreamRunning) {
 			isStreamRunning = false;
@@ -991,11 +1046,14 @@ public class MainFrame extends JFrame {
 		    		}
 		    		
 		    	isStreamRunning = false;
+		    	ChatArea.setText("");
 		    	SubmitButton.setText("Submit");
 		    }
 		});
 		myThread.start(); // Start the thread		
 	}
+	
+//Right-click functions for various JFrame objects
 private void showDisplayMenu(int x, int y) {
     JPopupMenu popupMenu = new JPopupMenu();
     JMenuItem copyMenuItem = new JMenuItem("Copy");
@@ -1095,6 +1153,9 @@ private void showChatMenu(int x, int y) {
     
     popupMenu.show(ChatArea, x, y);
 }
+//--------------------------------------------------
+
+	//Function that auto generates title for current chat based off its context
 	public void AutoTitle() {
 		Thread myThread = new Thread(new Runnable() {
 			public void run() {
@@ -1154,11 +1215,14 @@ private void showChatMenu(int x, int y) {
 			myThread.start();	
 	}
 	
+	
+	//Resets HTMLArea to properly display new HTML content
 	public static void resetHTMLAreaStyle() {
 		HTMLArea.setContentType("text/plain");
 		HTMLArea.setContentType("text/html");
 	}
 	
+	//sets FormSize to presets defined
 	public void setFormSize(int size){
 		if(size==1){
         	//setBounds(100, 100, 481, 584); //Uncomment this when editing design
