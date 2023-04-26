@@ -1029,6 +1029,9 @@ public class MainFrame extends JFrame {
 				    			first = false;
 				    		}
 				    	}
+						
+						ChatArea.setText("");
+						
 						}else {
 							if(messages.size() != 0) {
 							messages.remove(messages.size() - 1);
@@ -1046,7 +1049,7 @@ public class MainFrame extends JFrame {
 		    		}
 		    		
 		    	isStreamRunning = false;
-		    	ChatArea.setText("");
+		    	
 		    	SubmitButton.setText("Submit");
 		    }
 		});
