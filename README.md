@@ -73,6 +73,11 @@ Theme=dark			#Themes JFrame (Window) to set config. Options: dark,light
 ## Requirements
 
 - Java 8 or higher
+
+## Important note for legacy systems
+
+If your on a legacy Windows system such as 98, ME, 2000, and XP, there are additional steps involved to get Java 8 to run properly. <br>
+I made a guide on how to get Java 8 to run on these various OSs in a reddit thread. Link can be found [here](https://www.reddit.com/r/windows/comments/12t9ax3/comment/jh1h1qm/?utm_source=share&utm_medium=web2x&context=3).
     
 ## Final notes
 
