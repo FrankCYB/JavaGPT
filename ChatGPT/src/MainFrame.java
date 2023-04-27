@@ -41,7 +41,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -102,9 +104,9 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.2.9";
+	public static String version = "1.3.0";
 	private Boolean first = true;
-	private Boolean autosave = true;
+	private Boolean chathistory = true;
 	private Boolean autotitle = true;
 	private Boolean enter2submit = true;
 	private Boolean cloaderopen = false;
@@ -268,8 +270,16 @@ public class MainFrame extends JFrame {
 	 */
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
-			public void run() {
+			public void run() {	
 				
+				//Sets project to support Unicode
+				try {
+				System.setProperty("file.encoding","UTF-8");	
+				Field charset = Charset.class.getDeclaredField("defaultCharset");
+				charset.setAccessible(true);
+				charset.set(null,null);
+				}catch(Exception e) {}
+				//-------------------------------
 				   //Loads properties------------------------
 					prop = new Properties();
 				    InputStream input = null;
@@ -290,12 +300,13 @@ public class MainFrame extends JFrame {
 				                prop.setProperty("model", "gpt-3.5-turbo");
 				                prop.setProperty("maxTokens", "1024");
 				                prop.setProperty("timeout", "30");
-				                //prop.setProperty("proxyip", ""); // WIP Support will be added back
-				                //prop.setProperty("proxyport", ""); // WIP Support will be added back				                
-				                prop.setProperty("autosave", "true");
+				                prop.setProperty("proxyip", ""); // WIP Support will be added back
+				                prop.setProperty("proxyport", ""); // WIP Support will be added back
+				                prop.setProperty("proxytype", "");				                
 				                prop.setProperty("autotitle", "true");
 				                prop.setProperty("autoscroll", "true");
 				                prop.setProperty("EnterToSubmit", "true");
+				                prop.setProperty("chat_history", "true");
 				                prop.setProperty("chat_location_override", "");
 				                prop.setProperty("WindowSize", "");
 				                prop.setProperty("Theme", "dark");
@@ -326,8 +337,18 @@ public class MainFrame extends JFrame {
 					    }
 					}
 				    //----------------------------------------
-				   
-				    
+				    //Sets proxy settings
+				    if(prop.getProperty("proxyip") != null && !prop.getProperty("proxyip").isEmpty() && prop.getProperty("proxyport") != null && !prop.getProperty("proxyport").isEmpty()) {
+						if(prop.getProperty("proxytype").toLowerCase().equals("http") || prop.getProperty("proxytype").toLowerCase().equals("https")) {
+							System.setProperty("http.proxyHost", prop.getProperty("proxyip"));
+							System.setProperty("http.proxyPort", prop.getProperty("proxyport"));
+						}else {
+							System.getProperties().put( "proxySet", "true" );
+							System.getProperties().put( "socksProxyHost", prop.getProperty("proxyip") );
+							System.getProperties().put( "socksProxyPort", prop.getProperty("proxyport") );					
+						}
+					}
+				    //-------------------
 				    //Sets selected JTattoo theme-------------
 				        try {
 				        	if(!prop.getProperty("Theme").isEmpty()) {
@@ -596,23 +617,7 @@ public class MainFrame extends JFrame {
 			}
 		});
 		
-		menuBar.add(LoadChatButton);		
-		
-		//Sets "autosave" to false or true depending on what its set to when clicked
-		JMenu AutoSaveButton = new JMenu("Auto Save (Null)");
-		AutoSaveButton.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				if(autosave) {
-					autosave = false;
-					AutoSaveButton.setText("Auto Save (Off)");
-				}else {
-					autosave = true;
-					AutoSaveButton.setText("Auto Save (On)");
-				}
-			}
-		});
-		menuBar.add(AutoSaveButton);
+		menuBar.add(LoadChatButton);
 				
 		contentPane = new JPanel();
 		
@@ -850,7 +855,7 @@ public class MainFrame extends JFrame {
 		SaveButton.setBounds(10, 585, 43, 23);
 		ImportButton.setBounds(56, 585, 43, 23);*/
     	
-		
+	
 		//Bulk property setting-------------------
 	    try {
 	        if(prop.getProperty("autoscroll") != null && !prop.getProperty("autoscroll").isEmpty()) {	        	
@@ -860,18 +865,20 @@ public class MainFrame extends JFrame {
 	        	}        	
 	        }
 	        
-	        if(prop.getProperty("autosave").equals("true")){
-	        	autosave = true;
-	        	AutoSaveButton.setText("Auto Save (On)");
+	        if(prop.getProperty("chat_history") != null && !prop.getProperty("chat_history").isEmpty()) {
+	        if(prop.getProperty("chat_history").equals("true")){
+	        	chathistory = true;
 	        }else{
-	        	autosave = false;
-	        	AutoSaveButton.setText("Auto Save (Off)");
+	        	chathistory = false;
+	        }
 	        }
 	        
+	        if(prop.getProperty("autotitle") != null && !prop.getProperty("autotitle").isEmpty()) {
 	        if(prop.getProperty("autotitle").equals("true")){
 	        	autotitle = true;
 	        }else{
 	        	autotitle = false;
+	        }
 	        }
 	        
 	        if(prop.getProperty("EnterToSubmit") != null && !prop.getProperty("EnterToSubmit").isEmpty()) {
@@ -898,6 +905,7 @@ public class MainFrame extends JFrame {
 	    		}	        	
 	        }
 	        
+	        if(prop.getProperty("WindowSize") != null && !prop.getProperty("WindowSize").isEmpty()){
 	        if(prop.getProperty("WindowSize").equals("small")){
 	        	//setBounds(100, 100, 481, 584); //Uncomment this when editing design
 	        	scrollPane_1.setBounds(103, 454, 363, 69);
@@ -915,6 +923,14 @@ public class MainFrame extends JFrame {
 	        	SaveButton.setBounds(13, 873, 73, 36);
 	        	ImportButton.setBounds(88, 873, 73, 36);
 	        }else {	     	    		
+	        	SubmitButton.setBounds(10, 554, 89, 23);
+	    		ResetButton.setBounds(10, 616, 89, 23);
+	    		scrollPane.setBounds(10, 11, 667, 532);
+	    		scrollPane_1.setBounds(109, 554, 568, 85);
+	    		SaveButton.setBounds(10, 585, 43, 23);
+	    		ImportButton.setBounds(56, 585, 43, 23);
+	        }
+	        }else {
 	        	SubmitButton.setBounds(10, 554, 89, 23);
 	    		ResetButton.setBounds(10, 616, 89, 23);
 	    		scrollPane.setBounds(10, 11, 667, 532);
@@ -1011,7 +1027,7 @@ public class MainFrame extends JFrame {
 				            final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), GPTConvo);
 				            messages.add(systemMessage);
 				            
-						if(autosave) {
+						if(chathistory) {
 							
 							if(first) {	
 								
