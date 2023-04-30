@@ -30,8 +30,8 @@ A Java GUI that interfaces ChatGPT API.
 	- Be able to void previous prompts and responses from chat
 	- You can revert multiple times
 - Proxy Support
-	- Easily configurable via config.properties
 	- Supports SOCKS and HTTP proxies
+	- Easily configurable via config.properties	
 - HTML Viewer
 	- View your chat content in HTML
 	- Supports Markdown Language syntax
