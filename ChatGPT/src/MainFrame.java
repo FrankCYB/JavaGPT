@@ -88,12 +88,12 @@ public class MainFrame extends JFrame {
 	private OpenAiService service;
 	private final static ArrayList<ChatMessage> messages = new ArrayList<>();
 	private static JTextArea ChatArea;
-    private JButton SubmitButton;
-    private JScrollPane scrollPane;
-    private JScrollPane scrollPane_1;
-	private JButton SaveButton;
-	private JButton ImportButton;
-	private JButton ResetButton;
+    private static JButton SubmitButton;
+    private static JScrollPane scrollPane;
+    private static JScrollPane scrollPane_1;
+	private static JButton SaveButton;
+	private static JButton ImportButton;
+	private static JButton ResetButton;
 	
 	private static JEditorPane DisplayArea;
 	private static JEditorPane HTMLArea;
@@ -104,7 +104,7 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.3.0";
+	public static String version = "1.3.1";
 	private Boolean first = true;
 	private Boolean chathistory = true;
 	private Boolean autotitle = true;
@@ -116,7 +116,8 @@ public class MainFrame extends JFrame {
 	private static HtmlRenderer renderer;
 	public static Boolean isAlpha = true;
 	private Boolean isStreamRunning = false;
-	private static int FormSize;
+	private static int FormSize = 3;
+	private static int FontSize = 12;
 	public static int seltheme = 0;
 	private ChatLoader cloader;
 	private String chatDir;
@@ -126,7 +127,7 @@ public class MainFrame extends JFrame {
 	private static Style InvisibleStyle;
 	private static Style GPTStyle;
 	private static Style ChatStyle;
-	private static Style ErrorStyle;
+	private static Style ErrorStyle;	
 	private static MainFrame INSTANCE = null;
 	
 	//This function is used to load a chat from a file specified by the full file path and filename. 
@@ -308,7 +309,8 @@ public class MainFrame extends JFrame {
 				                prop.setProperty("EnterToSubmit", "true");
 				                prop.setProperty("chat_history", "true");
 				                prop.setProperty("chat_location_override", "");
-				                prop.setProperty("WindowSize", "");
+				                prop.setProperty("WindowSize", "medium");
+				                prop.setProperty("FontSize", "12");
 				                prop.setProperty("Theme", "dark");
 				                
 				                try {
@@ -370,22 +372,29 @@ public class MainFrame extends JFrame {
 					frame = new MainFrame(); //Loads main JFrame
 					 
 				//Scales JFrame based on "WindowSize" prop	
-				if(prop.getProperty("WindowSize").equals("small")){
-					
-					frame.getContentPane().setPreferredSize(new Dimension(475, 532));
-					FormSize=1;
-				}else if(prop.getProperty("WindowSize").equals("large")){
-					frame.getContentPane().setPreferredSize(new Dimension(1370, 960));
-					FormSize=2;
-					
-				}else {
-					
-					frame.getContentPane().setPreferredSize(new Dimension(686, 647));
-					FormSize=3;
+					switch(prop.getProperty("WindowSize")){
+					case "small":					
+						FormSize=1;
+						break;
+					case "large":
+						FormSize=2;
+						break;
+					default:
+						FormSize=3;
+						break;
 				}
-				frame.pack();
-				frame.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("logo.png")));
+				setFormSize();
 				//----------------------------------------
+				//Sets app icon to JavaGPT logo
+				frame.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("logo.png")));
+				
+				
+				if(prop.getProperty("FontSize") != null && !prop.getProperty("FontSize").isEmpty()) {
+					try {
+			            FontSize = Integer.parseInt(prop.getProperty("FontSize"));
+			        } catch (NumberFormatException e) {
+			        }					
+				}	
 				
 				//Makes JFrame visible			
 				frame.setVisible(true);
@@ -459,13 +468,13 @@ public class MainFrame extends JFrame {
 		JMenu FormSizeMenu = new JMenu("Form Size");
 		OptionMenu.add(FormSizeMenu);
 		
-		JMenuItem LargeMenuItem = new JMenuItem("Large");
-		FormSizeMenu.add(LargeMenuItem);
-		LargeMenuItem.addActionListener(new ActionListener() {
+		JMenuItem SmallMenuItem = new JMenuItem("Small");
+		FormSizeMenu.add(SmallMenuItem);
+		SmallMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
-		    	if(FormSize != 2) {
-		    	FormSize = 2;
-		    	setFormSize(2);	
+		    	if(FormSize != 1) {
+		    	FormSize = 1;
+		    	setFormSize();	
 		    	}
 		    }
 		});
@@ -476,19 +485,74 @@ public class MainFrame extends JFrame {
 		    public void actionPerformed(ActionEvent e) {
 		    	if(FormSize != 3) {
 		    	FormSize = 3;
-		    	setFormSize(3);	
+		    	setFormSize();	
 		    	}
 		    }
 		});
 		
-		JMenuItem SmallMenuItem = new JMenuItem("Small");
-		FormSizeMenu.add(SmallMenuItem);
-		SmallMenuItem.addActionListener(new ActionListener() {
+		JMenuItem LargeMenuItem = new JMenuItem("Large");
+		FormSizeMenu.add(LargeMenuItem);
+		LargeMenuItem.addActionListener(new ActionListener() {
 		    public void actionPerformed(ActionEvent e) {
-		    	if(FormSize != 1) {
-		    	FormSize = 1;
-		    	setFormSize(1);	
+		    	if(FormSize != 2) {
+		    	FormSize = 2;
+		    	setFormSize();	
 		    	}
+		    }
+		});
+		
+		JMenu FontSizeMenu = new JMenu("Font Size");
+		OptionMenu.add(FontSizeMenu);
+		
+		JMenuItem DefaultFSMenuItem = new JMenuItem("Default (12)");
+		FontSizeMenu.add(DefaultFSMenuItem);
+		DefaultFSMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	if(FontSize != 12) {
+		    	FontSize = 12;
+		    	setFontSize();
+		    	refreshMessages();
+		    	}
+		    }
+		});
+		
+		JMenuItem LargeFSMenuItem = new JMenuItem("Large (16)");
+		FontSizeMenu.add(LargeFSMenuItem);
+		LargeFSMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	if(FontSize != 16) {
+		    	FontSize = 16;
+		    	setFontSize();
+		    	refreshMessages();
+		    	}
+		    }
+		});
+		
+		JMenuItem ExtraLargeFSMenuItem = new JMenuItem("Ex-Large (20)");
+		FontSizeMenu.add(ExtraLargeFSMenuItem);
+		ExtraLargeFSMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	if(FontSize != 20) {
+		    	FontSize = 20;
+		    	setFontSize();
+		    	refreshMessages();
+		    	}
+		    }
+		});
+		
+		JMenuItem CustomFSMenuItem = new JMenuItem("Custom");
+		FontSizeMenu.add(CustomFSMenuItem);
+		CustomFSMenuItem.addActionListener(new ActionListener() {
+		    public void actionPerformed(ActionEvent e) {
+		    	String input = JOptionPane.showInputDialog(null, "Enter font size:", "Font Size", JOptionPane.PLAIN_MESSAGE);
+		    	try {
+		            FontSize = Integer.parseInt(input);
+		            setFontSize();
+			    	refreshMessages();
+		        } catch (NumberFormatException e1) {
+		        	JOptionPane.showMessageDialog(null, "Invalid font size", "Error", JOptionPane.ERROR_MESSAGE);
+		        }
+		    			    	
 		    }
 		});
 		//----------------------------------------------------------------------------------
@@ -645,10 +709,12 @@ public class MainFrame extends JFrame {
 		
 		YouStyle = sc.addStyle("bold", null);
 		StyleConstants.setFontFamily(YouStyle, "Tahoma");
+		StyleConstants.setFontSize(YouStyle, FontSize);
 		StyleConstants.setBold(YouStyle, true);
 								
 		GPTStyle = sc.addStyle("bold", null);
 		StyleConstants.setFontFamily(GPTStyle, "Tahoma");
+		StyleConstants.setFontSize(GPTStyle, FontSize);
 		StyleConstants.setBold(GPTStyle, true);
 		StyleConstants.setForeground(GPTStyle, Color.RED); //getHSBColor(0, 0.8f, 0.8f)
 		
@@ -657,10 +723,12 @@ public class MainFrame extends JFrame {
 		
 		ChatStyle = sc.addStyle("black", null);
 		StyleConstants.setFontFamily(ChatStyle, "Tahoma");
+		StyleConstants.setFontSize(ChatStyle, FontSize);
 
 		ErrorStyle = sc.addStyle("ErrorStyle", null);
-		StyleConstants.setItalic(ErrorStyle, true);
+		StyleConstants.setItalic(ErrorStyle, true);	
 		StyleConstants.setFontFamily(ErrorStyle, "Tahoma");
+		StyleConstants.setFontSize(ErrorStyle, FontSize);
 		
 		if(seltheme == 1) {
 			StyleConstants.setForeground(YouStyle, Color.ORANGE); //getHSBColor(30f/360, 0.8f, 1f)
@@ -708,7 +776,9 @@ public class MainFrame extends JFrame {
 		    public void keyPressed(KeyEvent e) {
 		    	if(enter2submit) {
 		        if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isShiftDown()) {
-		        	ChatArea.append("\n");
+		        	 int caret = ChatArea.getCaretPosition();
+		             ChatArea.insert("\n", caret);
+		             ChatArea.setCaretPosition(caret + 1);
 		        }else if(e.getKeyCode() == KeyEvent.VK_ENTER) {
 		        	submit();
 		        }
@@ -903,41 +973,7 @@ public class MainFrame extends JFrame {
 	    		} catch (URISyntaxException e1) {
 	    			JOptionPane.showMessageDialog(null, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 	    		}	        	
-	        }
-	        
-	        if(prop.getProperty("WindowSize") != null && !prop.getProperty("WindowSize").isEmpty()){
-	        if(prop.getProperty("WindowSize").equals("small")){
-	        	//setBounds(100, 100, 481, 584); //Uncomment this when editing design
-	        	scrollPane_1.setBounds(103, 454, 363, 69);
-	        	scrollPane.setBounds(10, 11, 456, 432);
-	        	SubmitButton.setBounds(10, 454, 89, 23);
-	        	SaveButton.setBounds(10, 477, 43, 23);
-	        	ImportButton.setBounds(56, 477, 43, 23);
-	        	ResetButton.setBounds(10, 500, 89, 23);
-	        }else if(prop.getProperty("WindowSize").equals("large")) {
-	        	//setBounds(100, 100, 702, 707);
-	    		SubmitButton.setBounds(13, 831, 148, 36);
-	        	ResetButton.setBounds(13, 914, 148, 36);
-	        	scrollPane.setBounds(13, 15, 1344, 802);
-	        	scrollPane_1.setBounds(171, 831, 1186, 118);
-	        	SaveButton.setBounds(13, 873, 73, 36);
-	        	ImportButton.setBounds(88, 873, 73, 36);
-	        }else {	     	    		
-	        	SubmitButton.setBounds(10, 554, 89, 23);
-	    		ResetButton.setBounds(10, 616, 89, 23);
-	    		scrollPane.setBounds(10, 11, 667, 532);
-	    		scrollPane_1.setBounds(109, 554, 568, 85);
-	    		SaveButton.setBounds(10, 585, 43, 23);
-	    		ImportButton.setBounds(56, 585, 43, 23);
-	        }
-	        }else {
-	        	SubmitButton.setBounds(10, 554, 89, 23);
-	    		ResetButton.setBounds(10, 616, 89, 23);
-	    		scrollPane.setBounds(10, 11, 667, 532);
-	    		scrollPane_1.setBounds(109, 554, 568, 85);
-	    		SaveButton.setBounds(10, 585, 43, 23);
-	    		ImportButton.setBounds(56, 585, 43, 23);
-	        }
+	        }	      
 	    //----------------------------------------
 	    } catch (Exception ex) {	    	
 	        ex.printStackTrace();
@@ -972,8 +1008,8 @@ public class MainFrame extends JFrame {
 		    	
 		    		try {
 						
-				    	StringBuilder GPTConvoBuilder = new StringBuilder();						    	
-				    							    	
+				    	StringBuilder GPTConvoBuilder = new StringBuilder();
+				    				    	
 			            final ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), ChatArea.getText());
 			            messages.add(userMessage);
 			            
@@ -1242,37 +1278,45 @@ private void showChatMenu(int x, int y) {
 	}
 	
 	//sets FormSize to presets defined
-	public void setFormSize(int size){
-		if(size==1){
-        	//setBounds(100, 100, 481, 584); //Uncomment this when editing design
-			frame.getContentPane().setPreferredSize(new Dimension(475, 532));
-			frame.pack();
-        	scrollPane_1.setBounds(103, 454, 363, 69);
-        	scrollPane.setBounds(10, 11, 456, 432);
-        	SubmitButton.setBounds(10, 454, 89, 23);
-        	SaveButton.setBounds(10, 477, 43, 23);
-        	ImportButton.setBounds(56, 477, 43, 23);
-        	ResetButton.setBounds(10, 500, 89, 23);
-        	
-        }else if(size==2) {
-        	//setBounds(100, 100, 702, 707);
-        	frame.getContentPane().setPreferredSize(new Dimension(1370, 960));
-        	frame.pack();
-    		SubmitButton.setBounds(13, 831, 148, 36);
-        	ResetButton.setBounds(13, 914, 148, 36);
-        	scrollPane.setBounds(13, 15, 1344, 802);
-        	scrollPane_1.setBounds(171, 831, 1186, 118);
-        	SaveButton.setBounds(13, 873, 73, 36);
-        	ImportButton.setBounds(88, 873, 73, 36);
-        }else {	
-        	frame.getContentPane().setPreferredSize(new Dimension(686, 647));
-			frame.pack();
-        	SubmitButton.setBounds(10, 554, 89, 23);
-    		ResetButton.setBounds(10, 616, 89, 23);
-    		scrollPane.setBounds(10, 11, 667, 532);
-    		scrollPane_1.setBounds(109, 554, 568, 85);
-    		SaveButton.setBounds(10, 585, 43, 23);
-    		ImportButton.setBounds(56, 585, 43, 23);
-        }
+	public static void setFormSize(){
+		switch(FormSize){
+        case 1:
+            frame.getContentPane().setPreferredSize(new Dimension(475, 532));
+            frame.pack();
+            scrollPane_1.setBounds(103, 454, 363, 69);
+            scrollPane.setBounds(10, 11, 456, 432);
+            SubmitButton.setBounds(10, 454, 89, 23);
+            SaveButton.setBounds(10, 477, 43, 23);
+            ImportButton.setBounds(56, 477, 43, 23);
+            ResetButton.setBounds(10, 500, 89, 23);
+            break;
+        case 2:
+            frame.getContentPane().setPreferredSize(new Dimension(1370, 960));
+            frame.pack();
+            SubmitButton.setBounds(13, 831, 148, 36);
+            ResetButton.setBounds(13, 914, 148, 36);
+            scrollPane.setBounds(13, 15, 1344, 802);
+            scrollPane_1.setBounds(171, 831, 1186, 118);
+            SaveButton.setBounds(13, 873, 73, 36);
+            ImportButton.setBounds(88, 873, 73, 36);
+            break;
+        default:
+            frame.getContentPane().setPreferredSize(new Dimension(686, 647));
+            frame.pack();
+            SubmitButton.setBounds(10, 554, 89, 23);
+            ResetButton.setBounds(10, 616, 89, 23);
+            scrollPane.setBounds(10, 11, 667, 532);
+            scrollPane_1.setBounds(109, 554, 568, 85);
+            SaveButton.setBounds(10, 585, 43, 23);
+            ImportButton.setBounds(56, 585, 43, 23);
+            break;
+		}
+	}
+	
+	public void setFontSize() {
+		StyleConstants.setFontSize(YouStyle, FontSize);
+		StyleConstants.setFontSize(GPTStyle, FontSize);
+		StyleConstants.setFontSize(ChatStyle, FontSize);
+		StyleConstants.setFontSize(ErrorStyle, FontSize);
 	}
 }
