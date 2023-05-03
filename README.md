@@ -74,6 +74,7 @@ EnterToSubmit=true		#Adjusts wether the Enter key should be used to submit or to
 chat_history=			#Adjust wether chats will save automatically
 chat_location_override=		#Overrides default "chat_history" folder path (Original path is set to the location of the jar file on runtime)
 WindowSize=			#Adjusts JFrame (Window) size. Options: small,medium,large (Set to "medium" by default)
+FontSize=			#Adjusts font size of chat content 
 Theme=dark			#Themes JFrame (Window) to set config. Options: dark,light
 ```
 ## Requirements
