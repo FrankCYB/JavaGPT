@@ -104,7 +104,7 @@ public class MainFrame extends JFrame {
 	private File FGPTConvo;
 	
 	public static Properties prop;
-	public static String version = "1.3.1";
+	public static String version = "1.3.2";
 	private Boolean first = true;
 	private Boolean chathistory = true;
 	private Boolean autotitle = true;
@@ -341,13 +341,16 @@ public class MainFrame extends JFrame {
 				    //----------------------------------------
 				    //Sets proxy settings
 				    if(prop.getProperty("proxyip") != null && !prop.getProperty("proxyip").isEmpty() && prop.getProperty("proxyport") != null && !prop.getProperty("proxyport").isEmpty()) {
-						if(prop.getProperty("proxytype").toLowerCase().equals("http") || prop.getProperty("proxytype").toLowerCase().equals("https")) {
+						if(prop.getProperty("proxytype").toLowerCase().equals("http")) {
 							System.setProperty("http.proxyHost", prop.getProperty("proxyip"));
 							System.setProperty("http.proxyPort", prop.getProperty("proxyport"));
+						}else if(prop.getProperty("proxytype").toLowerCase().equals("https")){
+							System.setProperty("https.proxyHost", prop.getProperty("proxyip"));
+							System.setProperty("https.proxyPort", prop.getProperty("proxyport"));					
 						}else {
 							System.getProperties().put( "proxySet", "true" );
 							System.getProperties().put( "socksProxyHost", prop.getProperty("proxyip") );
-							System.getProperties().put( "socksProxyPort", prop.getProperty("proxyport") );					
+							System.getProperties().put( "socksProxyPort", prop.getProperty("proxyport") );
 						}
 					}
 				    //-------------------
